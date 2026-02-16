@@ -79,6 +79,39 @@ curl -X POST http://localhost:3000/pool/scale \
   -d '{"size":3}'
 ```
 
+## CLI
+
+A local CLI is available at `cmd/scrappy` for script and agent workflows.
+
+Run via Go:
+
+```bash
+go run ./cmd/scrappy --help
+```
+
+Example commands:
+
+```bash
+go run ./cmd/scrappy --base-url http://localhost:3000 html \
+  --url https://example.com
+
+go run ./cmd/scrappy --base-url http://localhost:3000 markdown \
+  --url https://example.com --wait-ms 1500
+
+go run ./cmd/scrappy --base-url http://localhost:3000 screenshot \
+  --url https://example.com --format webp --quality 90
+
+go run ./cmd/scrappy --base-url http://localhost:3000 stats
+go run ./cmd/scrappy --base-url http://localhost:3000 scale --size 3
+```
+
+Global CLI flags:
+
+- `--base-url` (env: `SCRAPPY_BASE_URL`, default `http://localhost:3000`)
+- `--admin-token` (env: `SCRAPPY_ADMIN_TOKEN`)
+- `--http-timeout-ms` (env: `SCRAPPY_HTTP_TIMEOUT_MS`, default `80000`)
+- `--pretty` (pretty-print JSON output)
+
 ## Request Fields
 
 Common request fields for `/html` and `/markdown`:
