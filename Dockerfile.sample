@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.26-bookworm AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/scrappy ./
+
+FROM debian:bookworm-slim
+
+# Generic runtime dependencies for Scrappy without custom font bundles.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    chromium \
+    ca-certificates \
+    fonts-liberation \
+    fontconfig \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system scrappy \
+  && useradd --system --gid scrappy --create-home --home-dir /home/scrappy scrappy \
+  && mkdir -p /app \
+  && chown -R scrappy:scrappy /app /home/scrappy
+
+ENV SCRAPPY_CHROME_BIN=/usr/bin/chromium
+ENV SCRAPPY_ADDR=:3000
+
+WORKDIR /app
+COPY --from=builder /out/scrappy /usr/local/bin/scrappy
+
+USER scrappy
+
+EXPOSE 3000
+CMD ["scrappy"]

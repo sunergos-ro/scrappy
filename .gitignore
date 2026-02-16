@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+config/deploy*.yml
+!config/deploy.example.yml
+.kamal/secrets*
+!.kamal/secrets.example
+.cursor/

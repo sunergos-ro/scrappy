@@ -1,0 +1,71 @@
+service: scrappy
+image: your-org-or-user/scrappy
+
+servers:
+  web:
+    - 203.0.113.10
+
+proxy:
+  ssl: true
+  hosts:
+    - scrappy.example.com
+  forward_headers: true
+  app_port: 3000
+  healthcheck:
+    path: /health
+    interval: 3
+
+registry:
+  server: registry.example.com
+
+env:
+  clear:
+    SCRAPPY_ADDR: ":3000"
+    SCRAPPY_ALLOWED_IPS: "127.0.0.1,::1,10.0.0.0/8"
+    SCRAPPY_TRUSTED_PROXY_CIDRS: "10.0.0.0/8"
+    SCRAPPY_ALLOWED_TARGET_HOSTS: "*.example.com"
+    SCRAPPY_BLOCK_PRIVATE_NETWORKS: true
+    SCRAPPY_MAX_REQUEST_BODY_BYTES: 1048576
+    SCRAPPY_MAX_WAIT_MS: 20000
+    SCRAPPY_MAX_TIMEOUT_MS: 60000
+    SCRAPPY_MAX_VIEWPORT_WIDTH: 2560
+    SCRAPPY_MAX_VIEWPORT_HEIGHT: 2560
+    BROWSER_POOL_ENABLED: true
+    BROWSER_POOL_MIN_SIZE: 2
+    BROWSER_POOL_MAX_SIZE: 10
+    BROWSER_POOL_LEASE_TIMEOUT: 5
+    BROWSER_POOL_IDLE_TTL: 120
+    BROWSER_POOL_MAX_REUSE: 20
+    BROWSER_POOL_SPAWN_TIMEOUT: 30
+    BROWSER_POOL_HANG_TIMEOUT: 120
+    BROWSER_POOL_SUPERVISOR_INTERVAL: 10
+    BROWSER_POOL_ALLOW_STANDALONE_FALLBACK: false
+    SCRAPPY_DEFAULT_VIEWPORT_WIDTH: 1440
+    SCRAPPY_DEFAULT_VIEWPORT_HEIGHT: 756
+    SCRAPPY_DEFAULT_WAIT_MS: 2000
+    SCRAPPY_DEFAULT_TIMEOUT_MS: 30000
+    SCRAPPY_DEFAULT_FORMAT: "jpeg"
+    SCRAPPY_DEFAULT_QUALITY: 90
+    SCRAPPY_CHROME_NO_SANDBOX: false
+    R2_ENDPOINT: "https://<account-id>.r2.cloudflarestorage.com"
+    R2_BUCKET: "scrappy"
+    R2_PUBLIC_BASE_URL: "https://<public-id>.r2.dev"
+    R2_REGION: "auto"
+  secret:
+    - SCRAPPY_ADMIN_TOKEN
+    - R2_ACCESS_KEY_ID
+    - R2_SECRET_ACCESS_KEY
+    - SENTRY_DSN
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+  dockerfile: Dockerfile
+  cache:
+    type: registry
+    image: your-org-or-user/scrappy-build-cache
+    options: mode=max
+
+ssh:
+  user: deploy
+  port: "22"
