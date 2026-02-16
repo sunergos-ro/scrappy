@@ -72,3 +72,9 @@ This document explains how a request flows through Scrappy.
 - `/stats` is the primary diagnostics endpoint for pool behavior.
 - Screenshot endpoint requires R2 config; /html and /markdown do not.
 - Kamal deployment templates live in `config/deploy.example.yml` and `.kamal/secrets.example`.
+
+## Tooling Interfaces
+
+- `pkg/client`: typed HTTP client for Scrappy endpoints.
+- `cmd/scrappy`: CLI wrapper over `pkg/client` for script and local workflows.
+- `cmd/scrappy-mcp`: MCP stdio server that exposes Scrappy operations as MCP tools.

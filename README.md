@@ -112,6 +112,97 @@ Global CLI flags:
 - `--http-timeout-ms` (env: `SCRAPPY_HTTP_TIMEOUT_MS`, default `80000`)
 - `--pretty` (pretty-print JSON output)
 
+## MCP Server
+
+An MCP stdio server is available at `cmd/scrappy-mcp` and exposes these tools:
+
+- `scrappy_html`
+- `scrappy_markdown`
+- `scrappy_screenshot`
+- `scrappy_stats`
+- `scrappy_scale`
+
+Quick local test:
+
+```bash
+go run ./cmd/scrappy-mcp --help
+```
+
+### Run Modes
+
+Use one of these patterns:
+
+- Run from repo root with Go:
+
+```bash
+go run ./cmd/scrappy-mcp --base-url http://127.0.0.1:3000
+```
+
+- Build once and run from `PATH`:
+
+```bash
+go build -o ./bin/scrappy-mcp ./cmd/scrappy-mcp
+```
+
+Then make sure `scrappy-mcp` is on your `PATH`, and run:
+
+```bash
+scrappy-mcp --base-url http://127.0.0.1:3000
+```
+
+### Codex Integration
+
+Codex MCP servers are configured in `config.toml` under `[mcp_servers.<name>]`.
+
+If Codex is started from this repo root, use `go run`:
+
+```toml
+[mcp_servers.scrappy]
+command = "go"
+args = ["run", "./cmd/scrappy-mcp", "--base-url", "http://127.0.0.1:3000"]
+```
+
+If you want it to work from any directory, use a binary on `PATH`:
+
+```toml
+[mcp_servers.scrappy]
+command = "scrappy-mcp"
+args = ["--base-url", "http://127.0.0.1:3000"]
+```
+
+### Generic MCP Client Integration
+
+Most MCP clients use a JSON shape like this:
+
+```json
+{
+  "mcpServers": {
+    "scrappy": {
+      "command": "scrappy-mcp",
+      "args": ["--base-url", "http://127.0.0.1:3000"]
+    }
+  }
+}
+```
+
+### Auth and Safety
+
+If your `/stats` or `/pool/scale` endpoints require auth, set `SCRAPPY_ADMIN_TOKEN` in the environment used to launch your MCP client, or pass `--admin-token`.
+
+Recommended setup for least privilege:
+
+- `scrappy`: no admin token (safe default for content extraction tools)
+- `scrappy_admin`: admin token enabled (only for pool ops when needed)
+
+### Typical LLM Prompts
+
+Examples that reliably trigger tool usage:
+
+- `Use scrappy_markdown for https://example.com and return the top 10 links.`
+- `Call scrappy_html for https://example.com and extract title + canonical URL.`
+- `Check scrappy_stats and report if pool saturation is high.`
+- `If busy instances are above 2, call scrappy_scale with size 5.`
+
 ## Request Fields
 
 Common request fields for `/html` and `/markdown`:

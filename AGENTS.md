@@ -46,6 +46,12 @@ rg -n "symbol_or_text"
 - `models.go` defines API request/response DTOs.
 - `options.go` resolves defaults into runtime options.
 
+### Tooling Layer
+
+- `pkg/client/client.go`: typed HTTP client for Scrappy endpoints.
+- `cmd/scrappy/main.go`: CLI interface over the typed client.
+- `cmd/scrappy-mcp/*.go`: MCP stdio server exposing Scrappy as MCP tools.
+
 ### Pool Layer
 
 - `pool_types.go`: pool types/status/constants.
