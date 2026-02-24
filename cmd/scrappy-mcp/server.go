@@ -15,7 +15,7 @@ import (
 const (
 	defaultMCPProtocolVersion = "2024-11-05"
 	serverName                = "scrappy-mcp"
-	serverVersion             = "0.1.0"
+	serverVersion             = "0.4.0"
 )
 
 const (
@@ -205,13 +205,14 @@ func (s *mcpServer) callScreenshot(ctx context.Context, id json.RawMessage, rawA
 	}
 
 	resp, err := s.client.Screenshot(ctx, client.ScreenshotRequest{
-		URL:       urlValue,
-		Viewport:  buildViewport(args.Viewport, args.ViewportWidth, args.ViewportHeight),
-		UserAgent: strings.TrimSpace(args.UserAgent),
-		Format:    strings.TrimSpace(args.Format),
-		Quality:   args.Quality,
-		WaitMS:    args.WaitMS,
-		TimeoutMS: args.TimeoutMS,
+		URL:               urlValue,
+		Viewport:          buildViewport(args.Viewport, args.ViewportWidth, args.ViewportHeight),
+		UserAgent:         strings.TrimSpace(args.UserAgent),
+		Format:            strings.TrimSpace(args.Format),
+		Quality:           args.Quality,
+		DeviceScaleFactor: args.DeviceScaleFactor,
+		WaitMS:            args.WaitMS,
+		TimeoutMS:         args.TimeoutMS,
 	})
 	if err != nil {
 		return s.resultResponse(id, errorToolResult(err))
@@ -258,15 +259,16 @@ type renderToolArgs struct {
 }
 
 type screenshotToolArgs struct {
-	URL            string           `json:"url"`
-	UserAgent      string           `json:"user_agent,omitempty"`
-	Format         string           `json:"format,omitempty"`
-	Quality        int              `json:"quality,omitempty"`
-	WaitMS         int              `json:"wait_ms,omitempty"`
-	TimeoutMS      int              `json:"timeout_ms,omitempty"`
-	ViewportWidth  int              `json:"viewport_width,omitempty"`
-	ViewportHeight int              `json:"viewport_height,omitempty"`
-	Viewport       *client.Viewport `json:"viewport,omitempty"`
+	URL               string           `json:"url"`
+	UserAgent         string           `json:"user_agent,omitempty"`
+	Format            string           `json:"format,omitempty"`
+	Quality           int              `json:"quality,omitempty"`
+	DeviceScaleFactor float64          `json:"device_scale_factor,omitempty"`
+	WaitMS            int              `json:"wait_ms,omitempty"`
+	TimeoutMS         int              `json:"timeout_ms,omitempty"`
+	ViewportWidth     int              `json:"viewport_width,omitempty"`
+	ViewportHeight    int              `json:"viewport_height,omitempty"`
+	Viewport          *client.Viewport `json:"viewport,omitempty"`
 }
 
 type scaleToolArgs struct {
@@ -482,6 +484,11 @@ func screenshotInputSchema() map[string]any {
 		"minimum":     1,
 		"maximum":     100,
 		"description": "JPEG/WebP quality.",
+	}
+	props["device_scale_factor"] = map[string]any{
+		"type":        "number",
+		"minimum":     1,
+		"description": "Optional screenshot device scale factor (DPR).",
 	}
 	return schema
 }

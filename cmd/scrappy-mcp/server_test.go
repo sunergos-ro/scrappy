@@ -168,6 +168,55 @@ func TestToolsCallMarkdownAPIFailureReturnsToolError(t *testing.T) {
 	}
 }
 
+func TestToolsCallScreenshotPassesDeviceScaleFactor(t *testing.T) {
+	t.Parallel()
+
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/screenshot" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+
+		var req client.ScreenshotRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		if req.DeviceScaleFactor != 2 {
+			t.Fatalf("expected device scale factor 2, got %v", req.DeviceScaleFactor)
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"url":        req.URL,
+			"bucket":     "bucket",
+			"key":        "key",
+			"public_url": "https://cdn.example.com/key",
+			"bytes":      100,
+			"format":     "jpeg",
+			"width":      1200,
+			"height":     700,
+			"took_ms":    5,
+		})
+	}))
+	defer api.Close()
+
+	srv := newMCPServer(mustClient(t, api))
+
+	resp := srv.handleRequest(context.Background(), rpcRequest{
+		JSONRPC: "2.0",
+		ID:      json.RawMessage("13"),
+		Method:  "tools/call",
+		Params: mustJSON(t, map[string]any{
+			"name": toolScreenshot,
+			"arguments": map[string]any{
+				"url":                 "https://example.com",
+				"device_scale_factor": 2,
+			},
+		}),
+	})
+	if resp == nil || resp.Error != nil {
+		t.Fatalf("expected successful response, got %#v", resp)
+	}
+}
+
 func mustClient(t *testing.T, server *httptest.Server) *client.Client {
 	t.Helper()
 	t.Cleanup(server.Close)

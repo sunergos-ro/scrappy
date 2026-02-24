@@ -20,10 +20,10 @@ func newStealthPage(browser *rod.Browser) (*rod.Page, error) {
 	return page, nil
 }
 
-func runWithConfiguredPage(page *rod.Page, timeoutMS int, width int, height int, userAgent string, fn func(page *rod.Page) error) error {
+func runWithConfiguredPage(page *rod.Page, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
 	defer func() { _ = page.Close() }()
 
-	if err := applyPageDefaults(page, width, height, userAgent); err != nil {
+	if err := applyPageDefaults(page, width, height, userAgent, deviceScaleFactor); err != nil {
 		return err
 	}
 
@@ -31,16 +31,16 @@ func runWithConfiguredPage(page *rod.Page, timeoutMS int, width int, height int,
 	return fn(page)
 }
 
-func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, height int, userAgent string, fn func(page *rod.Page) error) error {
+func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
 	if !p.cfg.PoolEnabled {
-		return p.withStandalonePage(ctx, timeoutMS, width, height, userAgent, fn)
+		return p.withStandalonePage(ctx, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
 	}
 
 	inst, err := p.checkout(p.cfg.PoolLeaseTimeout)
 	if err != nil {
 		if p.cfg.AllowStandaloneFallback {
 			p.logger.Printf("pool checkout failed, falling back to standalone: %v", err)
-			return p.withStandalonePage(ctx, timeoutMS, width, height, userAgent, fn)
+			return p.withStandalonePage(ctx, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
 		}
 		p.logger.Printf("pool checkout failed: %v", err)
 		return errors.New("browser pool unavailable")
@@ -53,7 +53,7 @@ func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, he
 		return err
 	}
 
-	err = runWithConfiguredPage(page, timeoutMS, width, height, userAgent, fn)
+	err = runWithConfiguredPage(page, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
 
 	if err != nil {
 		p.markFailure(inst, err)
@@ -66,7 +66,7 @@ func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, he
 	return nil
 }
 
-func (p *BrowserPool) withStandalonePage(ctx context.Context, timeoutMS int, width int, height int, userAgent string, fn func(page *rod.Page) error) error {
+func (p *BrowserPool) withStandalonePage(ctx context.Context, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
 	browser, err := p.launchBrowser()
 	if err != nil {
 		return err
@@ -78,21 +78,26 @@ func (p *BrowserPool) withStandalonePage(ctx context.Context, timeoutMS int, wid
 		return err
 	}
 
-	return runWithConfiguredPage(page, timeoutMS, width, height, userAgent, fn)
+	return runWithConfiguredPage(page, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
 }
 
-func applyPageDefaults(page *rod.Page, width int, height int, userAgent string) error {
+func applyPageDefaults(page *rod.Page, width int, height int, userAgent string, deviceScaleFactor float64) error {
 	if userAgent != "" {
 		if err := (proto.NetworkSetUserAgentOverride{UserAgent: userAgent}).Call(page); err != nil {
 			return err
 		}
 	}
 
+	scaleFactor := deviceScaleFactor
+	if scaleFactor < 1 {
+		scaleFactor = 1
+	}
+
 	if width > 0 && height > 0 {
 		return (proto.EmulationSetDeviceMetricsOverride{
 			Width:             width,
 			Height:            height,
-			DeviceScaleFactor: 1,
+			DeviceScaleFactor: scaleFactor,
 			Mobile:            false,
 		}).Call(page)
 	}

@@ -176,6 +176,7 @@ func runScreenshot(ctx context.Context, c *client.Client, args []string, pretty 
 
 	format := fs.String("format", "", "Screenshot format (jpeg, png, webp)")
 	quality := fs.Int("quality", 0, "JPEG/WebP quality")
+	deviceScaleFactor := fs.Float64("device-scale-factor", 0, "Device scale factor (DPR) for screenshot rendering")
 	fs.Usage = func() {
 		_, _ = fmt.Fprintln(stderr, "Usage: scrappy [global options] screenshot --url <url> [options]")
 		fs.PrintDefaults()
@@ -193,7 +194,7 @@ func runScreenshot(ctx context.Context, c *client.Client, args []string, pretty 
 		return 2
 	}
 
-	req, err := buildScreenshotRequest(opts, *format, *quality)
+	req, err := buildScreenshotRequest(opts, *format, *quality, *deviceScaleFactor)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "error: %v\n", err)
 		return 2
@@ -308,20 +309,21 @@ func buildMarkdownRequest(opts requestFlags) (client.MarkdownRequest, error) {
 	}, nil
 }
 
-func buildScreenshotRequest(opts requestFlags, format string, quality int) (client.ScreenshotRequest, error) {
+func buildScreenshotRequest(opts requestFlags, format string, quality int, deviceScaleFactor float64) (client.ScreenshotRequest, error) {
 	urlValue, err := requireURL(opts.url)
 	if err != nil {
 		return client.ScreenshotRequest{}, err
 	}
 
 	return client.ScreenshotRequest{
-		URL:       urlValue,
-		Viewport:  makeViewport(opts.viewportWidth, opts.viewportHeight),
-		UserAgent: strings.TrimSpace(opts.userAgent),
-		Format:    strings.TrimSpace(format),
-		Quality:   quality,
-		WaitMS:    opts.waitMS,
-		TimeoutMS: opts.timeoutMS,
+		URL:               urlValue,
+		Viewport:          makeViewport(opts.viewportWidth, opts.viewportHeight),
+		UserAgent:         strings.TrimSpace(opts.userAgent),
+		Format:            strings.TrimSpace(format),
+		Quality:           quality,
+		DeviceScaleFactor: deviceScaleFactor,
+		WaitMS:            opts.waitMS,
+		TimeoutMS:         opts.timeoutMS,
 	}, nil
 }
 

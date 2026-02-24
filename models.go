@@ -6,13 +6,14 @@ type Viewport struct {
 }
 
 type ScreenshotRequest struct {
-	URL       string    `json:"url"`
-	Viewport  *Viewport `json:"viewport,omitempty"`
-	UserAgent string    `json:"user_agent,omitempty"`
-	Format    string    `json:"format,omitempty"`
-	Quality   int       `json:"quality,omitempty"`
-	WaitMS    int       `json:"wait_ms,omitempty"`
-	TimeoutMS int       `json:"timeout_ms,omitempty"`
+	URL               string    `json:"url"`
+	Viewport          *Viewport `json:"viewport,omitempty"`
+	UserAgent         string    `json:"user_agent,omitempty"`
+	Format            string    `json:"format,omitempty"`
+	Quality           int       `json:"quality,omitempty"`
+	DeviceScaleFactor float64   `json:"device_scale_factor,omitempty"`
+	WaitMS            int       `json:"wait_ms,omitempty"`
+	TimeoutMS         int       `json:"timeout_ms,omitempty"`
 }
 
 type ScreenshotResponse struct {
@@ -60,14 +61,15 @@ type ScaleRequest struct {
 }
 
 type ScreenshotOptions struct {
-	URL            string
-	ViewportWidth  int
-	ViewportHeight int
-	UserAgent      string
-	WaitMS         int
-	TimeoutMS      int
-	Format         string
-	Quality        int
+	URL               string
+	ViewportWidth     int
+	ViewportHeight    int
+	UserAgent         string
+	WaitMS            int
+	TimeoutMS         int
+	Format            string
+	Quality           int
+	DeviceScaleFactor float64
 }
 
 type RenderOptions struct {

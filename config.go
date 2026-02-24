@@ -22,6 +22,7 @@ type Config struct {
 	MaxTimeoutMS         int
 	MaxViewportWidth     int
 	MaxViewportHeight    int
+	MaxDeviceScaleFactor float64
 
 	PoolEnabled             bool
 	PoolMinSize             int
@@ -34,13 +35,14 @@ type Config struct {
 	PoolSupervisorInterval  time.Duration
 	AllowStandaloneFallback bool
 
-	DefaultViewportWidth  int
-	DefaultViewportHeight int
-	DefaultUserAgent      string
-	DefaultWait           time.Duration
-	DefaultTimeout        time.Duration
-	DefaultFormat         string
-	DefaultQuality        int
+	DefaultViewportWidth     int
+	DefaultViewportHeight    int
+	DefaultUserAgent         string
+	DefaultWait              time.Duration
+	DefaultTimeout           time.Duration
+	DefaultFormat            string
+	DefaultQuality           int
+	DefaultDeviceScaleFactor float64
 
 	ChromeBin       string
 	ChromeNoSandbox bool
@@ -68,6 +70,7 @@ func LoadConfig() Config {
 	cfg.MaxTimeoutMS = envInt("SCRAPPY_MAX_TIMEOUT_MS", 60000)
 	cfg.MaxViewportWidth = envInt("SCRAPPY_MAX_VIEWPORT_WIDTH", 2560)
 	cfg.MaxViewportHeight = envInt("SCRAPPY_MAX_VIEWPORT_HEIGHT", 2560)
+	cfg.MaxDeviceScaleFactor = envFloat64("SCRAPPY_MAX_DEVICE_SCALE_FACTOR", 3.0)
 
 	cfg.PoolEnabled = envBool("BROWSER_POOL_ENABLED", true)
 	cfg.PoolMinSize = envIntWithFallback("BROWSER_POOL_MIN_SIZE", "SCRAPPY_POOL_MIN_SIZE", 2)
@@ -87,6 +90,7 @@ func LoadConfig() Config {
 	cfg.DefaultTimeout = envDuration("SCRAPPY_DEFAULT_TIMEOUT_MS", 30*time.Second)
 	cfg.DefaultFormat = envString("SCRAPPY_DEFAULT_FORMAT", "jpeg")
 	cfg.DefaultQuality = envInt("SCRAPPY_DEFAULT_QUALITY", 100)
+	cfg.DefaultDeviceScaleFactor = envFloat64("SCRAPPY_DEFAULT_DEVICE_SCALE_FACTOR", 1.0)
 
 	cfg.ChromeBin = envString("SCRAPPY_CHROME_BIN", "")
 	cfg.ChromeNoSandbox = envBool("SCRAPPY_CHROME_NO_SANDBOX", false)
@@ -115,6 +119,18 @@ func envInt(key string, fallback int) int {
 		return fallback
 	}
 	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envFloat64(key string, fallback float64) float64 {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return fallback
 	}

@@ -49,6 +49,20 @@ func resolveTimeoutMS(cfg Config, timeoutMS int) int {
 	return clampMax(value, cfg.MaxTimeoutMS)
 }
 
+func resolveDeviceScaleFactor(cfg Config, deviceScaleFactor float64) float64 {
+	value := deviceScaleFactor
+	if value <= 0 {
+		value = cfg.DefaultDeviceScaleFactor
+	}
+	if value < 1 {
+		value = 1
+	}
+	if cfg.MaxDeviceScaleFactor > 0 && value > cfg.MaxDeviceScaleFactor {
+		value = cfg.MaxDeviceScaleFactor
+	}
+	return value
+}
+
 func resolveBaseRenderOptions(cfg Config, req renderOptionInput) RenderOptions {
 	viewportWidth, viewportHeight := resolveViewport(cfg, req.Viewport)
 	return RenderOptions{
@@ -81,14 +95,15 @@ func resolveScreenshotOptions(cfg Config, req ScreenshotRequest) ScreenshotOptio
 	}
 
 	return ScreenshotOptions{
-		URL:            base.URL,
-		ViewportWidth:  base.ViewportWidth,
-		ViewportHeight: base.ViewportHeight,
-		UserAgent:      base.UserAgent,
-		WaitMS:         base.WaitMS,
-		TimeoutMS:      base.TimeoutMS,
-		Format:         format,
-		Quality:        quality,
+		URL:               base.URL,
+		ViewportWidth:     base.ViewportWidth,
+		ViewportHeight:    base.ViewportHeight,
+		UserAgent:         base.UserAgent,
+		WaitMS:            base.WaitMS,
+		TimeoutMS:         base.TimeoutMS,
+		Format:            format,
+		Quality:           quality,
+		DeviceScaleFactor: resolveDeviceScaleFactor(cfg, req.DeviceScaleFactor),
 	}
 }
 

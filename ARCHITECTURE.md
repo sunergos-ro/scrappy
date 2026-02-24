@@ -39,7 +39,7 @@ This document explains how a request flows through Scrappy.
 ### `pool_page.go`
 
 - Builds stealth pages.
-- Applies viewport/user-agent defaults.
+- Applies viewport/user-agent defaults (and screenshot DPR when requested).
 - Executes common page lifecycle for pooled and standalone modes.
 - Standalone fallback on pool checkout failure is controlled by config (`BROWSER_POOL_ALLOW_STANDALONE_FALLBACK`).
 
@@ -64,7 +64,7 @@ This document explains how a request flows through Scrappy.
 
 - Render defaults (`SCRAPPY_DEFAULT_*`) are millisecond-based for wait/timeout values.
 - Pool timeout values (`BROWSER_POOL_*`) are currently interpreted in seconds.
-- Request limits (`SCRAPPY_MAX_*`) cap body size, wait/timeout, and viewport.
+- Request limits (`SCRAPPY_MAX_*`) cap body size, wait/timeout, viewport, and screenshot device scale factor.
 - URL target controls (`SCRAPPY_BLOCK_PRIVATE_NETWORKS`, `SCRAPPY_ALLOWED_TARGET_HOSTS`) apply before browser navigation.
 
 ## Operational Notes

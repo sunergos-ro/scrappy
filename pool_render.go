@@ -10,7 +10,7 @@ import (
 
 func (p *BrowserPool) Render(ctx context.Context, opts RenderOptions) (string, error) {
 	var html string
-	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, func(page *rod.Page) error {
+	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, 1, func(page *rod.Page) error {
 		if err := p.navigateAndSettle(page, opts.URL, opts.WaitMS); err != nil {
 			return err
 		}
@@ -23,7 +23,7 @@ func (p *BrowserPool) Render(ctx context.Context, opts RenderOptions) (string, e
 
 func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (string, error) {
 	var markdown string
-	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, func(page *rod.Page) error {
+	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, 1, func(page *rod.Page) error {
 		if err := p.navigateAndSettle(page, opts.URL, opts.WaitMS); err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (string,
 
 func (p *BrowserPool) Screenshot(ctx context.Context, opts ScreenshotOptions) (ScreenshotResult, error) {
 	var result ScreenshotResult
-	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, func(page *rod.Page) error {
+	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, opts.DeviceScaleFactor, func(page *rod.Page) error {
 		if err := p.navigateBasic(page, opts.URL, opts.WaitMS); err != nil {
 			return err
 		}

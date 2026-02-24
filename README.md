@@ -68,7 +68,7 @@ curl -X POST http://localhost:3000/markdown \
 ```bash
 curl -X POST http://localhost:3000/screenshot \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com","viewport":{"width":1440,"height":756},"format":"jpeg","quality":90}'
+  -d '{"url":"https://example.com","viewport":{"width":1440,"height":756},"format":"jpeg","quality":90,"device_scale_factor":2}'
 ```
 
 ### Scale Pool
@@ -99,7 +99,7 @@ go run ./cmd/scrappy --base-url http://localhost:3000 markdown \
   --url https://example.com --wait-ms 1500
 
 go run ./cmd/scrappy --base-url http://localhost:3000 screenshot \
-  --url https://example.com --format webp --quality 90
+  --url https://example.com --format webp --quality 90 --device-scale-factor 2
 
 go run ./cmd/scrappy --base-url http://localhost:3000 stats
 go run ./cmd/scrappy --base-url http://localhost:3000 scale --size 3
@@ -218,12 +218,13 @@ Request constraints:
 - URL must be absolute `http://` or `https://`.
 - URL credentials (`https://user:pass@...`) are rejected.
 - Private/local network targets are blocked by default.
-- `wait_ms` / `timeout_ms` / viewport are capped by server limits.
+- `wait_ms` / `timeout_ms` / viewport / `device_scale_factor` are capped by server limits.
 
 Additional fields for `/screenshot`:
 
 - `format` (`jpeg`, `png`, `webp`)
 - `quality` (ignored for png)
+- `device_scale_factor` (optional DPR, minimum `1`, capped by `SCRAPPY_MAX_DEVICE_SCALE_FACTOR`)
 
 ## Configuration
 
@@ -246,6 +247,7 @@ Key environment variables:
 - `SCRAPPY_MAX_TIMEOUT_MS` (default `60000`)
 - `SCRAPPY_MAX_VIEWPORT_WIDTH` (default `2560`)
 - `SCRAPPY_MAX_VIEWPORT_HEIGHT` (default `2560`)
+- `SCRAPPY_MAX_DEVICE_SCALE_FACTOR` (default `3`)
 
 ### Browser Pool
 
@@ -271,6 +273,7 @@ Legacy aliases (`SCRAPPY_POOL_*`) are still supported for pool size/timeouts.
 - `SCRAPPY_DEFAULT_TIMEOUT_MS`
 - `SCRAPPY_DEFAULT_FORMAT`
 - `SCRAPPY_DEFAULT_QUALITY`
+- `SCRAPPY_DEFAULT_DEVICE_SCALE_FACTOR`
 
 ### Browser Binary
 

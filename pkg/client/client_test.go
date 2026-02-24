@@ -92,3 +92,47 @@ func TestMarkdownReturnsAPIError(t *testing.T) {
 		t.Fatalf("unexpected error message: %q", apiErr.Message)
 	}
 }
+
+func TestScreenshotSendsDeviceScaleFactor(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/screenshot" {
+			t.Fatalf("expected path /screenshot, got %s", r.URL.Path)
+		}
+
+		var req ScreenshotRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		if req.DeviceScaleFactor != 2.5 {
+			t.Fatalf("expected device scale factor 2.5, got %v", req.DeviceScaleFactor)
+		}
+
+		_ = json.NewEncoder(w).Encode(ScreenshotResponse{
+			URL:       "https://example.com",
+			Bucket:    "bucket",
+			Key:       "key",
+			PublicURL: "https://cdn.example.com/key",
+			Bytes:     4567,
+			Format:    "png",
+			Width:     1200,
+			Height:    700,
+			TookMS:    11,
+		})
+	}))
+	defer server.Close()
+
+	c, err := New(server.URL, WithHTTPClient(server.Client()))
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = c.Screenshot(context.Background(), ScreenshotRequest{
+		URL:               "https://example.com",
+		DeviceScaleFactor: 2.5,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
