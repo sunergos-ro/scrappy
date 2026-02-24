@@ -43,6 +43,24 @@ func TestValidateAndNormalizeTargetURL(t *testing.T) {
 			wantError: "url host is not allowed",
 		},
 		{
+			name: "allows localhost when loopback targets are enabled",
+			cfg: Config{
+				BlockPrivateNetworks: true,
+				AllowLoopbackTargets: true,
+			},
+			inputURL: "http://localhost:8080/preview",
+			wantURL:  "http://localhost:8080/preview",
+		},
+		{
+			name: "still rejects private ip even when loopback targets are enabled",
+			cfg: Config{
+				BlockPrivateNetworks: true,
+				AllowLoopbackTargets: true,
+			},
+			inputURL:  "http://10.0.0.5/internal",
+			wantError: "url host is not allowed",
+		},
+		{
 			name: "accepts wildcard host allowlist",
 			cfg: Config{
 				BlockPrivateNetworks: false,

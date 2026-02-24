@@ -38,21 +38,43 @@ func validateAndNormalizeTargetURL(cfg Config, rawURL string) (string, error) {
 	}
 
 	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	hostAllowed := hostAllowedByPolicy(host, cfg.AllowedTargetHosts)
+	allowLoopback := cfg.AllowLoopbackTargets && isLoopbackHost(host)
+
 	if cfg.BlockPrivateNetworks {
-		if isBlockedHostname(host) {
-			return "", errors.New("url host is not allowed")
-		}
-		if err := ensureHostResolvesToPublicIPs(host); err != nil {
-			return "", err
+		if !allowLoopback {
+			if isBlockedHostname(host) {
+				return "", errors.New("url host is not allowed")
+			}
+			if err := ensureHostResolvesToPublicIPs(host); err != nil {
+				return "", err
+			}
 		}
 	}
 
-	if !hostAllowedByPolicy(host, cfg.AllowedTargetHosts) {
+	if !hostAllowed {
 		return "", errors.New("url host is not in allowlist")
 	}
 
 	parsed.Fragment = ""
 	return parsed.String(), nil
+}
+
+func isLoopbackHost(host string) bool {
+	normalized := strings.Trim(strings.ToLower(host), ".")
+	if normalized == "" {
+		return false
+	}
+
+	if normalized == "localhost" || strings.HasSuffix(normalized, ".localhost") {
+		return true
+	}
+
+	if ip := net.ParseIP(normalized); ip != nil && ip.IsLoopback() {
+		return true
+	}
+
+	return false
 }
 
 func isBlockedHostname(host string) bool {

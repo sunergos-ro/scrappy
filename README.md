@@ -239,6 +239,7 @@ Key environment variables:
 
 - `SCRAPPY_ALLOWED_TARGET_HOSTS` (optional comma-separated host allowlist; supports exact host, `.example.com`, `*.example.com`, and CIDR for IP targets)
 - `SCRAPPY_BLOCK_PRIVATE_NETWORKS` (default `true`; blocks localhost/private/link-local/reserved targets)
+- `SCRAPPY_ALLOW_LOOPBACK_TARGETS` (default `false`; when `true`, allows `localhost`/loopback targets for local development)
 - `SCRAPPY_ADMIN_TOKEN` (optional; protects `/stats` and `/pool/scale` when set; use `Authorization: Bearer <token>` or `X-Admin-Token`)
 - `SCRAPPY_MAX_REQUEST_BODY_BYTES` (default `1048576`)
 - `SCRAPPY_MAX_WAIT_MS` (default `20000`)

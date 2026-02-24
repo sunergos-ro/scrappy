@@ -15,6 +15,7 @@ type Config struct {
 
 	AllowedTargetHosts   []string
 	BlockPrivateNetworks bool
+	AllowLoopbackTargets bool
 	AdminToken           string
 	MaxRequestBodyBytes  int64
 	MaxWaitMS            int
@@ -60,6 +61,7 @@ func LoadConfig() Config {
 
 	cfg.AllowedTargetHosts = envStringSlice("SCRAPPY_ALLOWED_TARGET_HOSTS", []string{})
 	cfg.BlockPrivateNetworks = envBool("SCRAPPY_BLOCK_PRIVATE_NETWORKS", true)
+	cfg.AllowLoopbackTargets = envBool("SCRAPPY_ALLOW_LOOPBACK_TARGETS", false)
 	cfg.AdminToken = envString("SCRAPPY_ADMIN_TOKEN", "")
 	cfg.MaxRequestBodyBytes = envInt64("SCRAPPY_MAX_REQUEST_BODY_BYTES", 1024*1024)
 	cfg.MaxWaitMS = envInt("SCRAPPY_MAX_WAIT_MS", 20000)
