@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 )
 
 type InstanceStatus string
@@ -20,6 +21,8 @@ const (
 type BrowserInstance struct {
 	ID              string
 	Browser         *rod.Browser
+	Launcher        *launcher.Launcher
+	UserDataDir     string
 	Status          InstanceStatus
 	CreatedAt       time.Time
 	LaunchStartedAt time.Time
@@ -33,15 +36,23 @@ type BrowserInstance struct {
 }
 
 type BrowserPool struct {
-	cfg            Config
-	logger         *log.Logger
-	mu             sync.Mutex
-	instances      map[string]*BrowserInstance
-	desired        int
-	shutdown       bool
-	events         []PoolEvent
-	utilization    []PoolUtilization
-	lastSupervisor time.Time
+	cfg                Config
+	logger             *log.Logger
+	mu                 sync.Mutex
+	instances          map[string]*BrowserInstance
+	standaloneDirs     map[string]struct{}
+	desired            int
+	shutdown           bool
+	events             []PoolEvent
+	utilization        []PoolUtilization
+	lastSupervisor     time.Time
+	lastProfileCleanup time.Time
+}
+
+type launchedBrowser struct {
+	Browser     *rod.Browser
+	Launcher    *launcher.Launcher
+	UserDataDir string
 }
 
 type PoolEvent struct {

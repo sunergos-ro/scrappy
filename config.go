@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -44,8 +45,11 @@ type Config struct {
 	DefaultQuality           int
 	DefaultDeviceScaleFactor float64
 
-	ChromeBin       string
-	ChromeNoSandbox bool
+	ChromeBin                    string
+	ChromeNoSandbox              bool
+	ChromeUserDataDirRoot        string
+	ChromeProfileCleanupInterval time.Duration
+	ChromeProfileCleanupMaxAge   time.Duration
 
 	R2Endpoint      string
 	R2AccessKey     string
@@ -94,6 +98,9 @@ func LoadConfig() Config {
 
 	cfg.ChromeBin = envString("SCRAPPY_CHROME_BIN", "")
 	cfg.ChromeNoSandbox = envBool("SCRAPPY_CHROME_NO_SANDBOX", false)
+	cfg.ChromeUserDataDirRoot = envString("SCRAPPY_CHROME_USER_DATA_DIR_ROOT", filepath.Join(os.TempDir(), "rod", "user-data", "scrappy"))
+	cfg.ChromeProfileCleanupInterval = time.Duration(envInt("SCRAPPY_CHROME_PROFILE_CLEANUP_INTERVAL_SECONDS", 600)) * time.Second
+	cfg.ChromeProfileCleanupMaxAge = time.Duration(envInt("SCRAPPY_CHROME_PROFILE_CLEANUP_MAX_AGE_SECONDS", 3600)) * time.Second
 
 	cfg.R2Endpoint = envString("R2_ENDPOINT", "")
 	cfg.R2AccessKey = envString("R2_ACCESS_KEY_ID", "")

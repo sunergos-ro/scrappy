@@ -279,6 +279,11 @@ Legacy aliases (`SCRAPPY_POOL_*`) are still supported for pool size/timeouts.
 
 - `SCRAPPY_CHROME_BIN` (optional explicit Chrome/Chromium binary)
 - `SCRAPPY_CHROME_NO_SANDBOX` (default `false`; keep disabled unless strictly required)
+- `SCRAPPY_CHROME_USER_DATA_DIR_ROOT` (default `/tmp/rod/user-data/scrappy`; Scrappy stores browser profiles under this app-owned root)
+- `SCRAPPY_CHROME_PROFILE_CLEANUP_INTERVAL_SECONDS` (default `600`; set `0` to disable stale profile janitor)
+- `SCRAPPY_CHROME_PROFILE_CLEANUP_MAX_AGE_SECONDS` (default `3600`; directories older than this are pruned from Scrappy's browser profile root unless currently in use)
+
+Note: older Scrappy deployments used Rod's shared default temp root (`/tmp/rod/user-data`). This change stops new growth there, but existing legacy directories under the old root may still need a one-time manual cleanup.
 
 ### R2 (required only for `/screenshot`)
 
@@ -303,6 +308,7 @@ Pool code is now split by responsibility:
 - `pool_navigation.go` - navigation, settle, extraction helpers
 - `pool_page.go` - page lifecycle/setup
 - `pool_manager.go` - pool internals (spawn/checkout/reap/logging)
+- `browser_profiles.go` - Rod launcher cleanup and stale profile janitor
 - `extraction_scripts.go` - browser-evaluated extraction scripts
 
 Request parsing/defaults:

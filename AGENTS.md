@@ -60,6 +60,7 @@ rg -n "symbol_or_text"
 - `pool_navigation.go`: navigation/stability/extraction helpers.
 - `pool_page.go`: page setup and pooled/standalone execution lifecycle.
 - `pool_manager.go`: internal pool operations (checkout/spawn/reap/logging).
+- `browser_profiles.go`: Rod launcher cleanup and stale profile janitor.
 - `extraction_scripts.go`: JS extraction scripts evaluated in browser.
 
 ### External Services

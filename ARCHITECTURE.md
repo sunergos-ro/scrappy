@@ -34,6 +34,7 @@ This document explains how a request flows through Scrappy.
 
 - Browser instance checkout/release.
 - Spawn/reap/hang detection.
+- Retains Rod launcher state so browser shutdown can remove temp user-data dirs.
 - Event logging and utilization tracking.
 
 ### `pool_page.go`
@@ -42,6 +43,11 @@ This document explains how a request flows through Scrappy.
 - Applies viewport/user-agent defaults (and screenshot DPR when requested).
 - Executes common page lifecycle for pooled and standalone modes.
 - Standalone fallback on pool checkout failure is controlled by config (`BROWSER_POOL_ALLOW_STANDALONE_FALLBACK`).
+
+### `browser_profiles.go`
+
+- Closes launched browsers with launcher-aware cleanup.
+- Periodically removes stale Scrappy-owned temp profile directories left behind by crashed or older Scrappy processes.
 
 ### `pool_navigation.go`
 
@@ -65,6 +71,7 @@ This document explains how a request flows through Scrappy.
 - Render defaults (`SCRAPPY_DEFAULT_*`) are millisecond-based for wait/timeout values.
 - Pool timeout values (`BROWSER_POOL_*`) are currently interpreted in seconds.
 - Request limits (`SCRAPPY_MAX_*`) cap body size, wait/timeout, viewport, and screenshot device scale factor.
+- Chrome profile janitor settings (`SCRAPPY_CHROME_PROFILE_CLEANUP_*`) are interpreted in seconds.
 - URL target controls (`SCRAPPY_BLOCK_PRIVATE_NETWORKS`, `SCRAPPY_ALLOWED_TARGET_HOSTS`) apply before browser navigation.
 
 ## Operational Notes

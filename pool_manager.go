@@ -3,10 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/launcher/flags"
 )
 
 func (p *BrowserPool) checkout(timeout time.Duration) (*BrowserInstance, error) {
@@ -219,7 +222,7 @@ func (p *BrowserPool) spawn(reason string) {
 	p.recordUtilizationLocked()
 	p.mu.Unlock()
 
-	browser, err := p.launchBrowser()
+	launched, err := p.launchBrowser()
 	if err != nil {
 		p.mu.Lock()
 		delete(p.instances, id)
@@ -229,7 +232,9 @@ func (p *BrowserPool) spawn(reason string) {
 	}
 
 	p.mu.Lock()
-	inst.Browser = browser
+	inst.Browser = launched.Browser
+	inst.Launcher = launched.Launcher
+	inst.UserDataDir = launched.UserDataDir
 	inst.Status = statusIdle
 	inst.LaunchStartedAt = time.Time{}
 	p.recordUtilizationLocked()
@@ -237,12 +242,18 @@ func (p *BrowserPool) spawn(reason string) {
 	p.logEvent("spawn", fmt.Sprintf("Browser ready (reason: %s)", reason), id, "info")
 }
 
-func (p *BrowserPool) launchBrowser() (*rod.Browser, error) {
+func (p *BrowserPool) launchBrowser() (*launchedBrowser, error) {
+	userDataDir := filepath.Join(p.cfg.ChromeUserDataDirRoot, newID())
+	if err := os.MkdirAll(p.cfg.ChromeUserDataDirRoot, 0o755); err != nil {
+		return nil, err
+	}
+
 	launcherInstance := launcher.New().
 		Leakless(true).
 		Set("disable-gpu").
 		Set("disable-dev-shm-usage").
-		Set("headless", "new")
+		Set("headless", "new").
+		UserDataDir(userDataDir)
 
 	if p.cfg.ChromeNoSandbox {
 		launcherInstance = launcherInstance.Set("no-sandbox").Set("disable-setuid-sandbox")
@@ -252,6 +263,7 @@ func (p *BrowserPool) launchBrowser() (*rod.Browser, error) {
 		launcherInstance = launcherInstance.Bin(p.cfg.ChromeBin)
 	}
 
+	userDataDir = launcherInstance.Get(flags.UserDataDir)
 	url, err := launcherInstance.Launch()
 	if err != nil {
 		return nil, err
@@ -259,10 +271,15 @@ func (p *BrowserPool) launchBrowser() (*rod.Browser, error) {
 
 	browser := rod.New().ControlURL(url)
 	if err := browser.Connect(); err != nil {
+		safeCloseBrowser(nil, launcherInstance)
 		return nil, err
 	}
 
-	return browser, nil
+	return &launchedBrowser{
+		Browser:     browser,
+		Launcher:    launcherInstance,
+		UserDataDir: userDataDir,
+	}, nil
 }
 
 func (p *BrowserPool) removeInstance(id string, reason string) {
@@ -288,18 +305,10 @@ func (p *BrowserPool) removeInstanceLocked(id string, reason string) {
 }
 
 func (p *BrowserPool) safeQuit(inst *BrowserInstance) {
-	if inst == nil || inst.Browser == nil {
+	if inst == nil {
 		return
 	}
-	done := make(chan struct{})
-	go func() {
-		_ = inst.Browser.Close()
-		close(done)
-	}()
-	select {
-	case <-done:
-	case <-time.After(5 * time.Second):
-	}
+	safeCloseBrowser(inst.Browser, inst.Launcher)
 }
 
 func (p *BrowserPool) nextIdleLocked() *BrowserInstance {

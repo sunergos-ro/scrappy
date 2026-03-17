@@ -67,13 +67,15 @@ func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, he
 }
 
 func (p *BrowserPool) withStandalonePage(ctx context.Context, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
-	browser, err := p.launchBrowser()
+	launched, err := p.launchBrowser()
 	if err != nil {
 		return err
 	}
-	defer func() { _ = browser.Close() }()
+	p.trackStandaloneUserDataDir(launched.UserDataDir)
+	defer p.untrackStandaloneUserDataDir(launched.UserDataDir)
+	defer safeCloseBrowser(launched.Browser, launched.Launcher)
 
-	page, err := newStealthPage(browser)
+	page, err := newStealthPage(launched.Browser)
 	if err != nil {
 		return err
 	}

@@ -9,13 +9,16 @@ import (
 
 func NewBrowserPool(cfg Config, logger *log.Logger) *BrowserPool {
 	pool := &BrowserPool{
-		cfg:         cfg,
-		logger:      logger,
-		instances:   make(map[string]*BrowserInstance),
-		desired:     cfg.PoolMinSize,
-		events:      make([]PoolEvent, 0, maxEvents),
-		utilization: make([]PoolUtilization, 0, maxUtilizationPoints),
+		cfg:            cfg,
+		logger:         logger,
+		instances:      make(map[string]*BrowserInstance),
+		standaloneDirs: make(map[string]struct{}),
+		desired:        cfg.PoolMinSize,
+		events:         make([]PoolEvent, 0, maxEvents),
+		utilization:    make([]PoolUtilization, 0, maxUtilizationPoints),
 	}
+
+	pool.startProfileJanitor()
 
 	if cfg.PoolEnabled {
 		go pool.supervisor()
@@ -93,22 +96,26 @@ func (p *BrowserPool) Stats() map[string]any {
 
 	return map[string]any{
 		"config": map[string]any{
-			"min_size":                   p.cfg.PoolMinSize,
-			"max_size":                   p.cfg.PoolMaxSize,
-			"desired_size":               p.desired,
-			"idle_ttl":                   p.cfg.PoolIdleTTL.Seconds(),
-			"max_reuse":                  p.cfg.PoolMaxReuse,
-			"lease_timeout":              p.cfg.PoolLeaseTimeout.Seconds(),
-			"spawn_timeout":              p.cfg.PoolSpawnTimeout.Seconds(),
-			"hang_timeout":               p.cfg.PoolHangTimeout.Seconds(),
-			"allow_standalone_fallback":  p.cfg.AllowStandaloneFallback,
-			"chrome_no_sandbox_override": p.cfg.ChromeNoSandbox,
+			"min_size":                        p.cfg.PoolMinSize,
+			"max_size":                        p.cfg.PoolMaxSize,
+			"desired_size":                    p.desired,
+			"idle_ttl":                        p.cfg.PoolIdleTTL.Seconds(),
+			"max_reuse":                       p.cfg.PoolMaxReuse,
+			"lease_timeout":                   p.cfg.PoolLeaseTimeout.Seconds(),
+			"spawn_timeout":                   p.cfg.PoolSpawnTimeout.Seconds(),
+			"hang_timeout":                    p.cfg.PoolHangTimeout.Seconds(),
+			"allow_standalone_fallback":       p.cfg.AllowStandaloneFallback,
+			"chrome_no_sandbox_override":      p.cfg.ChromeNoSandbox,
+			"chrome_user_data_dir_root":       p.cfg.ChromeUserDataDirRoot,
+			"chrome_profile_cleanup_interval": p.cfg.ChromeProfileCleanupInterval.Seconds(),
+			"chrome_profile_cleanup_max_age":  p.cfg.ChromeProfileCleanupMaxAge.Seconds(),
 		},
-		"counts":                 counts,
-		"instances":              instances,
-		"events":                 events,
-		"utilization":            util,
-		"last_supervisor_run_at": formatTime(p.lastSupervisor),
+		"counts":                  counts,
+		"instances":               instances,
+		"events":                  events,
+		"utilization":             util,
+		"last_profile_cleanup_at": formatTime(p.lastProfileCleanup),
+		"last_supervisor_run_at":  formatTime(p.lastSupervisor),
 	}
 }
 
