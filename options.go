@@ -118,13 +118,15 @@ func resolveRenderOptions(cfg Config, req RenderRequest) RenderOptions {
 }
 
 func resolveMarkdownOptions(cfg Config, req MarkdownRequest) RenderOptions {
-	return resolveBaseRenderOptions(cfg, renderOptionInput{
+	opts := resolveBaseRenderOptions(cfg, renderOptionInput{
 		URL:       req.URL,
 		Viewport:  req.Viewport,
 		UserAgent: req.UserAgent,
 		WaitMS:    req.WaitMS,
 		TimeoutMS: req.TimeoutMS,
 	})
+	opts.PrimeLazyContent = req.PrimeLazyContent
+	return opts
 }
 
 func clampMax(value int, maxValue int) int {

@@ -190,20 +190,22 @@ func TestResolveScreenshotOptions(t *testing.T) {
 func TestResolveMarkdownOptions(t *testing.T) {
 	cfg := testConfig()
 	req := MarkdownRequest{
-		URL:       " https://example.com ",
-		Viewport:  &Viewport{Height: 900},
-		UserAgent: " markdown-agent ",
-		WaitMS:    3000,
+		URL:              " https://example.com ",
+		Viewport:         &Viewport{Height: 900},
+		UserAgent:        " markdown-agent ",
+		WaitMS:           3000,
+		PrimeLazyContent: true,
 	}
 
 	got := resolveMarkdownOptions(cfg, req)
 	want := RenderOptions{
-		URL:            "https://example.com",
-		ViewportWidth:  1200,
-		ViewportHeight: 900,
-		UserAgent:      "markdown-agent",
-		WaitMS:         3000,
-		TimeoutMS:      15000,
+		URL:              "https://example.com",
+		ViewportWidth:    1200,
+		ViewportHeight:   900,
+		UserAgent:        "markdown-agent",
+		WaitMS:           3000,
+		TimeoutMS:        15000,
+		PrimeLazyContent: true,
 	}
 
 	if got != want {

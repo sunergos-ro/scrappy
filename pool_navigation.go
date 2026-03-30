@@ -110,6 +110,28 @@ func extractMarkdown(page *rod.Page) (string, error) {
 	return normalizeMarkdownOutput(textObj.Value.Str()), nil
 }
 
+func primeLazyContentForMarkdown(page *rod.Page) error {
+	_, err := page.Eval(`async () => {
+		const root = document.scrollingElement || document.documentElement || document.body;
+		if (!root) return;
+
+		const viewportHeight = Math.max(window.innerHeight || 0, 600);
+		const step = Math.max(Math.floor(viewportHeight * 0.8), 400);
+		const initialHeight = root.scrollHeight || 0;
+
+		for (let top = 0; top < initialHeight; top += step) {
+			window.scrollTo(0, top);
+			await new Promise(requestAnimationFrame);
+		}
+
+		window.scrollTo(0, root.scrollHeight || initialHeight);
+		await new Promise(requestAnimationFrame);
+		window.scrollTo(0, 0);
+		await new Promise(requestAnimationFrame);
+	}`)
+	return err
+}
+
 func normalizeMarkdownOutput(markdown string) string {
 	markdown = strings.ReplaceAll(markdown, "\r\n", "\n")
 	lines := strings.Split(markdown, "\n")

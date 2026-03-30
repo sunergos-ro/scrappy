@@ -85,8 +85,10 @@ func main() {
 func withRequestLogging(logger *log.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
-		logger.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+		recorder := &statusRecorder{ResponseWriter: w, statusCode: http.StatusOK}
+		next.ServeHTTP(recorder, r)
+		duration := time.Since(start)
+		logger.Printf("%s %s status=%d bytes=%d duration=%s", r.Method, r.URL.Path, recorder.statusCode, recorder.bytes, duration)
 	})
 }
 
@@ -164,6 +166,26 @@ func parseClientIPCandidate(value string) string {
 		return ip.String()
 	}
 	return ""
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	statusCode int
+	bytes      int
+}
+
+func (r *statusRecorder) WriteHeader(statusCode int) {
+	r.statusCode = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (r *statusRecorder) Write(data []byte) (int, error) {
+	if r.statusCode == 0 {
+		r.statusCode = http.StatusOK
+	}
+	n, err := r.ResponseWriter.Write(data)
+	r.bytes += n
+	return n, err
 }
 
 func registerRoutes(mux *http.ServeMux, handlers *Handlers) {

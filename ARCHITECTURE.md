@@ -52,6 +52,7 @@ This document explains how a request flows through Scrappy.
 ### `pool_navigation.go`
 
 - Navigation and settle logic.
+- Optional lazy-content priming for markdown requests by scrolling the page before extraction.
 - Markdown extraction invocation + fallback to body text.
 - Extraction normalizes absolute URLs and skips hidden/invisible nodes.
 

@@ -35,6 +35,13 @@ func TestHandleInitialize(t *testing.T) {
 	if got := result["protocolVersion"]; got != "2024-11-05" {
 		t.Fatalf("unexpected protocol version: %#v", got)
 	}
+	serverInfo, ok := result["serverInfo"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected serverInfo map, got %T", result["serverInfo"])
+	}
+	if got := serverInfo["version"]; got != serverVersion {
+		t.Fatalf("server version = %#v, want %#v", got, serverVersion)
+	}
 }
 
 func TestToolsListContainsAllTools(t *testing.T) {
@@ -168,6 +175,49 @@ func TestToolsCallMarkdownAPIFailureReturnsToolError(t *testing.T) {
 	}
 }
 
+func TestToolsCallMarkdownPassesPrimeLazyContent(t *testing.T) {
+	t.Parallel()
+
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/markdown" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+
+		var req client.MarkdownRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		if !req.PrimeLazyContent {
+			t.Fatal("expected prime_lazy_content to be true")
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"url":      req.URL,
+			"markdown": "# Example",
+			"took_ms":  7,
+		})
+	}))
+	defer api.Close()
+
+	srv := newMCPServer(mustClient(t, api))
+
+	resp := srv.handleRequest(context.Background(), rpcRequest{
+		JSONRPC: "2.0",
+		ID:      json.RawMessage("8"),
+		Method:  "tools/call",
+		Params: mustJSON(t, map[string]any{
+			"name": toolMarkdown,
+			"arguments": map[string]any{
+				"url":                "https://example.com",
+				"prime_lazy_content": true,
+			},
+		}),
+	})
+	if resp == nil || resp.Error != nil {
+		t.Fatalf("expected successful response, got %#v", resp)
+	}
+}
+
 func TestToolsCallScreenshotPassesDeviceScaleFactor(t *testing.T) {
 	t.Parallel()
 
@@ -215,6 +265,27 @@ func TestToolsCallScreenshotPassesDeviceScaleFactor(t *testing.T) {
 	if resp == nil || resp.Error != nil {
 		t.Fatalf("expected successful response, got %#v", resp)
 	}
+}
+
+func TestToolDefinitionsMarkdownSchemaIncludesPrimeLazyContent(t *testing.T) {
+	t.Parallel()
+
+	for _, tool := range toolDefinitions() {
+		if tool.Name != toolMarkdown {
+			continue
+		}
+
+		props, ok := tool.InputSchema["properties"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected properties map, got %T", tool.InputSchema["properties"])
+		}
+		if _, ok := props["prime_lazy_content"]; !ok {
+			t.Fatal("expected markdown schema to include prime_lazy_content")
+		}
+		return
+	}
+
+	t.Fatal("markdown tool definition not found")
 }
 
 func mustClient(t *testing.T, server *httptest.Server) *client.Client {

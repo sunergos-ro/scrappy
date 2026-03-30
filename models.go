@@ -43,11 +43,12 @@ type RenderResponse struct {
 }
 
 type MarkdownRequest struct {
-	URL       string    `json:"url"`
-	Viewport  *Viewport `json:"viewport,omitempty"`
-	UserAgent string    `json:"user_agent,omitempty"`
-	WaitMS    int       `json:"wait_ms,omitempty"`
-	TimeoutMS int       `json:"timeout_ms,omitempty"`
+	URL              string    `json:"url"`
+	Viewport         *Viewport `json:"viewport,omitempty"`
+	UserAgent        string    `json:"user_agent,omitempty"`
+	WaitMS           int       `json:"wait_ms,omitempty"`
+	TimeoutMS        int       `json:"timeout_ms,omitempty"`
+	PrimeLazyContent bool      `json:"prime_lazy_content,omitempty"`
 }
 
 type MarkdownResponse struct {
@@ -73,12 +74,13 @@ type ScreenshotOptions struct {
 }
 
 type RenderOptions struct {
-	URL            string
-	ViewportWidth  int
-	ViewportHeight int
-	UserAgent      string
-	WaitMS         int
-	TimeoutMS      int
+	URL              string
+	ViewportWidth    int
+	ViewportHeight   int
+	UserAgent        string
+	WaitMS           int
+	TimeoutMS        int
+	PrimeLazyContent bool
 }
 
 type ScreenshotResult struct {

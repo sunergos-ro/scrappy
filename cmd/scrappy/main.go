@@ -30,6 +30,11 @@ type requestFlags struct {
 	viewportHeight int
 }
 
+type markdownRequestFlags struct {
+	requestFlags
+	primeLazyContent bool
+}
+
 func main() {
 	os.Exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
 }
@@ -134,8 +139,9 @@ func runMarkdown(ctx context.Context, c *client.Client, args []string, pretty bo
 	fs := flag.NewFlagSet("markdown", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 
-	opts := requestFlags{}
-	bindRequestFlags(fs, &opts)
+	opts := markdownRequestFlags{}
+	bindRequestFlags(fs, &opts.requestFlags)
+	fs.BoolVar(&opts.primeLazyContent, "prime-lazy-content", false, "Scroll through the page before markdown extraction to trigger lazy-loaded content")
 	fs.Usage = func() {
 		_, _ = fmt.Fprintln(stderr, "Usage: scrappy [global options] markdown --url <url> [options]")
 		fs.PrintDefaults()
@@ -294,18 +300,19 @@ func buildRenderRequest(opts requestFlags) (client.RenderRequest, error) {
 	}, nil
 }
 
-func buildMarkdownRequest(opts requestFlags) (client.MarkdownRequest, error) {
-	urlValue, err := requireURL(opts.url)
+func buildMarkdownRequest(opts markdownRequestFlags) (client.MarkdownRequest, error) {
+	urlValue, err := requireURL(opts.requestFlags.url)
 	if err != nil {
 		return client.MarkdownRequest{}, err
 	}
 
 	return client.MarkdownRequest{
-		URL:       urlValue,
-		Viewport:  makeViewport(opts.viewportWidth, opts.viewportHeight),
-		UserAgent: strings.TrimSpace(opts.userAgent),
-		WaitMS:    opts.waitMS,
-		TimeoutMS: opts.timeoutMS,
+		URL:              urlValue,
+		Viewport:         makeViewport(opts.requestFlags.viewportWidth, opts.requestFlags.viewportHeight),
+		UserAgent:        strings.TrimSpace(opts.requestFlags.userAgent),
+		WaitMS:           opts.requestFlags.waitMS,
+		TimeoutMS:        opts.requestFlags.timeoutMS,
+		PrimeLazyContent: opts.primeLazyContent,
 	}, nil
 }
 

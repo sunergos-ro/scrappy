@@ -27,6 +27,12 @@ func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (string,
 		if err := p.navigateAndSettle(page, opts.URL, opts.WaitMS); err != nil {
 			return err
 		}
+		if opts.PrimeLazyContent {
+			if err := primeLazyContentForMarkdown(page); err != nil {
+				return err
+			}
+			p.waitForStableBestEffort(page, opts.URL, defaultSettleTimeout)
+		}
 
 		extracted, err := extractMarkdown(page)
 		if err != nil {

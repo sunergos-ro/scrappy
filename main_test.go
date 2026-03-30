@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -59,4 +61,34 @@ func TestGetClientIPIgnoresForwardedHeadersFromUntrustedSource(t *testing.T) {
 	if got != "198.51.100.8" {
 		t.Fatalf("client ip = %q, want %q", got, "198.51.100.8")
 	}
+}
+
+func TestWithRequestLoggingIncludesStatusAndBytes(t *testing.T) {
+	var buf bytes.Buffer
+	logger := log.New(&buf, "", 0)
+	handler := withRequestLogging(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("ok"))
+	}))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/markdown", nil)
+	handler.ServeHTTP(rec, req)
+
+	logLine := buf.String()
+	if logLine == "" {
+		t.Fatal("expected a log line")
+	}
+	if !containsAll(logLine, []string{"POST /markdown", "status=201", "bytes=2", "duration="}) {
+		t.Fatalf("unexpected log line: %q", logLine)
+	}
+}
+
+func containsAll(s string, parts []string) bool {
+	for _, part := range parts {
+		if !bytes.Contains([]byte(s), []byte(part)) {
+			return false
+		}
+	}
+	return true
 }

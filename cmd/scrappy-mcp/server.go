@@ -15,7 +15,7 @@ import (
 const (
 	defaultMCPProtocolVersion = "2024-11-05"
 	serverName                = "scrappy-mcp"
-	serverVersion             = "0.4.1"
+	serverVersion             = "0.4.3"
 )
 
 const (
@@ -172,7 +172,7 @@ func (s *mcpServer) callHTML(ctx context.Context, id json.RawMessage, rawArgs js
 }
 
 func (s *mcpServer) callMarkdown(ctx context.Context, id json.RawMessage, rawArgs json.RawMessage) *rpcResponse {
-	args := renderToolArgs{}
+	args := markdownToolArgs{}
 	if err := decodeStrictObject(rawArgs, &args); err != nil {
 		return s.errorResponse(id, -32602, "invalid params", err.Error())
 	}
@@ -182,11 +182,12 @@ func (s *mcpServer) callMarkdown(ctx context.Context, id json.RawMessage, rawArg
 	}
 
 	resp, err := s.client.Markdown(ctx, client.MarkdownRequest{
-		URL:       urlValue,
-		Viewport:  buildViewport(args.Viewport, args.ViewportWidth, args.ViewportHeight),
-		UserAgent: strings.TrimSpace(args.UserAgent),
-		WaitMS:    args.WaitMS,
-		TimeoutMS: args.TimeoutMS,
+		URL:              urlValue,
+		Viewport:         buildViewport(args.Viewport, args.ViewportWidth, args.ViewportHeight),
+		UserAgent:        strings.TrimSpace(args.UserAgent),
+		WaitMS:           args.WaitMS,
+		TimeoutMS:        args.TimeoutMS,
+		PrimeLazyContent: args.PrimeLazyContent,
 	})
 	if err != nil {
 		return s.resultResponse(id, errorToolResult(err))
@@ -256,6 +257,11 @@ type renderToolArgs struct {
 	ViewportWidth  int              `json:"viewport_width,omitempty"`
 	ViewportHeight int              `json:"viewport_height,omitempty"`
 	Viewport       *client.Viewport `json:"viewport,omitempty"`
+}
+
+type markdownToolArgs struct {
+	renderToolArgs
+	PrimeLazyContent bool `json:"prime_lazy_content,omitempty"`
 }
 
 type screenshotToolArgs struct {
@@ -386,7 +392,7 @@ func toolDefinitions() []toolDefinition {
 		{
 			Name:        toolMarkdown,
 			Description: "Extract markdown-like content from a URL.",
-			InputSchema: renderInputSchema(),
+			InputSchema: markdownInputSchema(),
 		},
 		{
 			Name:        toolScreenshot,
@@ -469,6 +475,16 @@ func renderInputSchema() map[string]any {
 		"required":             []string{"url"},
 		"additionalProperties": false,
 	}
+}
+
+func markdownInputSchema() map[string]any {
+	schema := renderInputSchema()
+	props, _ := schema["properties"].(map[string]any)
+	props["prime_lazy_content"] = map[string]any{
+		"type":        "boolean",
+		"description": "Scroll through the page before extraction to trigger lazy-loaded content.",
+	}
+	return schema
 }
 
 func screenshotInputSchema() map[string]any {

@@ -60,7 +60,7 @@ curl -X POST http://localhost:3000/html \
 ```bash
 curl -X POST http://localhost:3000/markdown \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com"}'
+  -d '{"url":"https://example.com","prime_lazy_content":true}'
 ```
 
 ### Capture Screenshot
@@ -96,7 +96,7 @@ go run ./cmd/scrappy --base-url http://localhost:3000 html \
   --url https://example.com
 
 go run ./cmd/scrappy --base-url http://localhost:3000 markdown \
-  --url https://example.com --wait-ms 1500
+  --url https://example.com --wait-ms 1500 --prime-lazy-content
 
 go run ./cmd/scrappy --base-url http://localhost:3000 screenshot \
   --url https://example.com --format webp --quality 90 --device-scale-factor 2
@@ -219,6 +219,10 @@ Request constraints:
 - URL credentials (`https://user:pass@...`) are rejected.
 - Private/local network targets are blocked by default.
 - `wait_ms` / `timeout_ms` / viewport / `device_scale_factor` are capped by server limits.
+
+Additional field for `/markdown`:
+
+- `prime_lazy_content` (optional; scrolls through the page before extraction to trigger lazy-loaded sections)
 
 Additional fields for `/screenshot`:
 

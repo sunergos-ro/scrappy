@@ -93,6 +93,44 @@ func TestMarkdownReturnsAPIError(t *testing.T) {
 	}
 }
 
+func TestMarkdownSendsPrimeLazyContent(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/markdown" {
+			t.Fatalf("expected path /markdown, got %s", r.URL.Path)
+		}
+
+		var req MarkdownRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		if !req.PrimeLazyContent {
+			t.Fatal("expected prime_lazy_content to be true")
+		}
+
+		_ = json.NewEncoder(w).Encode(MarkdownResponse{
+			URL:      req.URL,
+			Markdown: "# Example",
+			TookMS:   18,
+		})
+	}))
+	defer server.Close()
+
+	c, err := New(server.URL, WithHTTPClient(server.Client()))
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = c.Markdown(context.Background(), MarkdownRequest{
+		URL:              "https://example.com",
+		PrimeLazyContent: true,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
 func TestScreenshotSendsDeviceScaleFactor(t *testing.T) {
 	t.Parallel()
 

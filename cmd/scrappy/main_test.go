@@ -129,6 +129,47 @@ func TestRunScreenshotPassesDeviceScaleFactor(t *testing.T) {
 	}
 }
 
+func TestRunMarkdownPassesPrimeLazyContent(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/markdown" {
+			t.Fatalf("expected /markdown, got %s", r.URL.Path)
+		}
+
+		var req client.MarkdownRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+		if !req.PrimeLazyContent {
+			t.Fatal("expected prime_lazy_content to be true")
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"url":      req.URL,
+			"markdown": "# Example",
+			"took_ms":  15,
+		})
+	}))
+	defer server.Close()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := run(context.Background(), []string{
+		"--base-url", server.URL,
+		"markdown",
+		"--url", "https://example.com",
+		"--prime-lazy-content",
+	}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d (stderr=%s)", code, stderr.String())
+	}
+}
+
 func TestRunScaleRequiresSize(t *testing.T) {
 	t.Parallel()
 
@@ -141,5 +182,12 @@ func TestRunScaleRequiresSize(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "--size is required") {
 		t.Fatalf("expected size error, got: %s", stderr.String())
+	}
+}
+
+func TestBuildMarkdownRequestRequiresURL(t *testing.T) {
+	_, err := buildMarkdownRequest(markdownRequestFlags{})
+	if err == nil {
+		t.Fatal("expected an error for missing URL")
 	}
 }
