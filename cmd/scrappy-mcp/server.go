@@ -15,7 +15,7 @@ import (
 const (
 	defaultMCPProtocolVersion = "2024-11-05"
 	serverName                = "scrappy-mcp"
-	serverVersion             = "0.4.3"
+	serverVersion             = "0.4.4"
 )
 
 const (
