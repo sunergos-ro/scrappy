@@ -67,6 +67,11 @@ rg -n "symbol_or_text"
 
 - `r2.go`: screenshot upload and URL composition.
 - `config.go`: environment loading and defaults.
+- `posthog.go`: optional PostHog exception capture (no-op when `POSTHOG_PROJECT_API_KEY` is unset; do not default `POSTHOG_HOST` to a private instance — OSS builds must keep Cloud default or explicit host).
+
+## Releases
+
+Bump `serverVersion` in `cmd/scrappy-mcp/server.go` with each tagged release. Prefer minor bumps for dependency/observability migrations that change optional env vars; keep endpoint contracts stable.
 
 ## Testing Guidance
 

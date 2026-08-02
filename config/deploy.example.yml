@@ -54,11 +54,13 @@ env:
     R2_BUCKET: "scrappy"
     R2_PUBLIC_BASE_URL: "https://<public-id>.r2.dev"
     R2_REGION: "auto"
+    # Optional: PostHog Cloud US is the SDK default when unset.
+    # POSTHOG_HOST: "https://us.i.posthog.com"
   secret:
     - SCRAPPY_ADMIN_TOKEN
     - R2_ACCESS_KEY_ID
     - R2_SECRET_ACCESS_KEY
-    - SENTRY_DSN
+    - POSTHOG_PROJECT_API_KEY
     - KAMAL_REGISTRY_PASSWORD
 
 builder:

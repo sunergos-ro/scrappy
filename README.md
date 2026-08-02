@@ -298,9 +298,14 @@ Note: older Scrappy deployments used Rod's shared default temp root (`/tmp/rod/u
 - `R2_PUBLIC_BASE_URL`
 - `R2_REGION` (default `auto`)
 
-### Observability
+### Observability (optional)
 
-- `SENTRY_DSN` (optional)
+Error tracking is off unless configured. Leaving these unset is the recommended local/OSS default.
+
+- `POSTHOG_PROJECT_API_KEY` (optional) — enables exception capture via [posthog-go](https://github.com/PostHog/posthog-go)
+- `POSTHOG_HOST` (optional) — ingestion host; defaults to PostHog Cloud US (`https://us.i.posthog.com`). Set this for self-hosted PostHog.
+
+Migration note (v0.5.0): `SENTRY_DSN` is no longer read. Existing deployments keep working; only Sentry reporting stops until you switch to the PostHog variables above. A startup warning is logged if `SENTRY_DSN` is still set.
 
 ## Project Layout
 

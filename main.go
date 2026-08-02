@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
 )
 
@@ -20,16 +19,12 @@ func main() {
 		log.Printf("warning: .env file not found or could not be loaded: %v", err)
 	}
 
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn: os.Getenv("SENTRY_DSN"),
-	}); err != nil {
-		log.Fatalf("sentry.Init: %s", err)
-	}
-	defer sentry.Flush(2 * time.Second)
-
 	cfg := LoadConfig()
 
 	logger := log.New(os.Stdout, "", log.LstdFlags)
+
+	posthogClient := initPostHog(logger)
+	defer closePostHog(posthogClient)
 
 	pool := NewBrowserPool(cfg, logger)
 	if cfg.PoolEnabled {
@@ -50,8 +45,8 @@ func main() {
 	mux := http.NewServeMux()
 	registerRoutes(mux, handlers)
 
-	// Apply middleware: logging -> IP allowlist -> handler
-	handler := withRequestLogging(logger, withIPAllowlist(allowlist, trustedProxies, logger, mux))
+	// Apply middleware: panic recovery -> logging -> IP allowlist -> handler
+	handler := withPanicRecovery(posthogClient, logger, withRequestLogging(logger, withIPAllowlist(allowlist, trustedProxies, logger, mux)))
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
