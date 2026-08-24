@@ -32,6 +32,9 @@ func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (string,
 				return err
 			}
 			p.waitForStableBestEffort(page, opts.URL, defaultSettleTimeout)
+			if err := p.ensureDocumentURLAllowed(page); err != nil {
+				return err
+			}
 		}
 
 		extracted, err := extractMarkdown(page)

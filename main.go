@@ -126,21 +126,40 @@ func getClientIP(r *http.Request, trustedProxies *IPAllowlist) string {
 	}
 
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		if len(parts) > 0 {
-			if ip := parseClientIPCandidate(parts[0]); ip != "" {
-				return ip
-			}
+		if ip := clientIPFromXForwardedFor(xff, trustedProxies); ip != "" {
+			return ip
 		}
 	}
 
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		if ip := parseClientIPCandidate(xri); ip != "" {
+		if ip := parseClientIPCandidate(xri); ip != "" && !trustedProxies.IsAllowed(ip) {
 			return ip
 		}
 	}
 
 	return remoteIP
+}
+
+// clientIPFromXForwardedFor walks X-Forwarded-For from the right, strips hops
+// that match trusted proxy CIDRs, and returns the first remaining client IP.
+// An unparseable hop stops the walk so left-side values are not trusted.
+func clientIPFromXForwardedFor(xff string, trustedProxies *IPAllowlist) string {
+	parts := strings.Split(xff, ",")
+	for i := len(parts) - 1; i >= 0; i-- {
+		raw := strings.TrimSpace(parts[i])
+		if raw == "" {
+			continue
+		}
+		ip := parseClientIPCandidate(raw)
+		if ip == "" {
+			return ""
+		}
+		if trustedProxies != nil && trustedProxies.IsAllowed(ip) {
+			continue
+		}
+		return ip
+	}
+	return ""
 }
 
 func parseClientIPCandidate(value string) string {

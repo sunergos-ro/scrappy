@@ -21,7 +21,11 @@ registry:
 env:
   clear:
     SCRAPPY_ADDR: ":3000"
-    SCRAPPY_ALLOWED_IPS: "127.0.0.1,::1,10.0.0.0/8"
+    # Real caller IPs only. Do not put the proxy network (for example 10.0.0.0/8)
+    # here; that would treat kamal-proxy as an allowlisted client. /health
+    # bypasses this list so the proxy can probe without being listed.
+    SCRAPPY_ALLOWED_IPS: "203.0.113.50"
+    # Immediate peers that may send X-Forwarded-For / X-Real-IP (docker / kamal-proxy).
     SCRAPPY_TRUSTED_PROXY_CIDRS: "10.0.0.0/8"
     SCRAPPY_ALLOWED_TARGET_HOSTS: "*.example.com"
     SCRAPPY_BLOCK_PRIVATE_NETWORKS: true

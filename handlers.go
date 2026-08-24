@@ -82,6 +82,9 @@ func (h *Handlers) Screenshot(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.pool.Screenshot(r.Context(), options)
 	if err != nil {
+		if writeTargetPolicyError(w, err) {
+			return
+		}
 		h.logf("screenshot failed for %s: %v", options.URL, err)
 		writeError(w, http.StatusBadGateway, "failed to capture screenshot")
 		return
@@ -130,6 +133,9 @@ func (h *Handlers) Render(w http.ResponseWriter, r *http.Request) {
 
 	html, err := h.pool.Render(r.Context(), options)
 	if err != nil {
+		if writeTargetPolicyError(w, err) {
+			return
+		}
 		h.logf("render failed for %s: %v", options.URL, err)
 		writeError(w, http.StatusBadGateway, "failed to render page")
 		return
@@ -164,6 +170,9 @@ func (h *Handlers) Markdown(w http.ResponseWriter, r *http.Request) {
 
 	markdown, err := h.pool.Markdown(r.Context(), options)
 	if err != nil {
+		if writeTargetPolicyError(w, err) {
+			return
+		}
 		h.logf("markdown failed for %s: %v", options.URL, err)
 		writeError(w, http.StatusBadGateway, "failed to extract markdown")
 		return
@@ -238,6 +247,14 @@ func validateTargetURL(w http.ResponseWriter, cfg Config, value string) (string,
 		return "", false
 	}
 	return normalizedURL, true
+}
+
+func writeTargetPolicyError(w http.ResponseWriter, err error) bool {
+	if !isTargetPolicyError(err) {
+		return false
+	}
+	writeError(w, http.StatusBadRequest, err.Error())
+	return true
 }
 
 func (h *Handlers) requireAdminAccess(w http.ResponseWriter, r *http.Request) bool {

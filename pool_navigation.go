@@ -31,6 +31,20 @@ func (p *BrowserPool) navigateBasic(page *rod.Page, url string, waitMS int) erro
 		p.logger.Printf("could not await fonts for %s: %v", url, err)
 	}
 
+	return p.ensureDocumentURLAllowed(page)
+}
+
+func (p *BrowserPool) ensureDocumentURLAllowed(page *rod.Page) error {
+	info, err := page.Info()
+	if err != nil || info == nil || strings.TrimSpace(info.URL) == "" {
+		return wrapTargetPolicyError(errors.New("document url is not allowed"))
+	}
+	if _, err := validateAndNormalizeTargetURL(p.cfg, info.URL); err != nil {
+		if p.logger != nil {
+			p.logger.Printf("blocked document url %s: %v", info.URL, err)
+		}
+		return wrapTargetPolicyError(err)
+	}
 	return nil
 }
 
@@ -64,7 +78,7 @@ func (p *BrowserPool) navigateAndSettle(page *rod.Page, url string, waitMS int) 
 		p.waitForStableBestEffort(page, url, retryWait)
 	}
 
-	return nil
+	return p.ensureDocumentURLAllowed(page)
 }
 
 func (p *BrowserPool) waitForStableBestEffort(page *rod.Page, url string, timeout time.Duration) {

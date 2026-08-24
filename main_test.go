@@ -63,6 +63,64 @@ func TestGetClientIPIgnoresForwardedHeadersFromUntrustedSource(t *testing.T) {
 	}
 }
 
+func TestGetClientIPUsesRightmostUntrustedHop(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/html", nil)
+	req.RemoteAddr = "10.0.0.12:4567"
+	// Leftmost 10.0.0.1 is a spoofed allowlisted hop; the first untrusted hop
+	// from the right is the client.
+	req.Header.Set("X-Forwarded-For", "10.0.0.1, 203.0.113.77, 10.0.0.5")
+
+	trustedProxies := NewIPAllowlist([]string{"10.0.0.0/8"})
+	got := getClientIP(req, trustedProxies)
+	if got != "203.0.113.77" {
+		t.Fatalf("client ip = %q, want %q", got, "203.0.113.77")
+	}
+}
+
+func TestGetClientIPFallsBackWhenAllXFFHopsAreTrusted(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/html", nil)
+	req.RemoteAddr = "10.0.0.12:4567"
+	req.Header.Set("X-Forwarded-For", "10.0.0.5, 10.0.0.12")
+	req.Header.Set("X-Real-IP", "10.0.0.9")
+
+	trustedProxies := NewIPAllowlist([]string{"10.0.0.0/8"})
+	got := getClientIP(req, trustedProxies)
+	if got != "10.0.0.12" {
+		t.Fatalf("client ip = %q, want %q", got, "10.0.0.12")
+	}
+}
+
+func TestGetClientIPStopsAtUnparseableXFFHop(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/html", nil)
+	req.RemoteAddr = "10.0.0.12:4567"
+	req.Header.Set("X-Forwarded-For", "203.0.113.77, not-an-ip, 10.0.0.12")
+
+	trustedProxies := NewIPAllowlist([]string{"10.0.0.0/8"})
+	got := getClientIP(req, trustedProxies)
+	if got != "10.0.0.12" {
+		t.Fatalf("client ip = %q, want %q", got, "10.0.0.12")
+	}
+}
+
+func TestWithIPAllowlistAllowsHealthFromAnyPeer(t *testing.T) {
+	var buf bytes.Buffer
+	logger := log.New(&buf, "", 0)
+	allowlist := NewIPAllowlist([]string{"203.0.113.50"})
+	trustedProxies := NewIPAllowlist([]string{"10.0.0.0/8"})
+	handler := withIPAllowlist(allowlist, trustedProxies, logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req.RemoteAddr = "198.51.100.8:80"
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
 func TestWithRequestLoggingIncludesStatusAndBytes(t *testing.T) {
 	var buf bytes.Buffer
 	logger := log.New(&buf, "", 0)
