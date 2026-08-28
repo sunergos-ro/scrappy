@@ -10,54 +10,128 @@ import (
 )
 
 var extraRestrictedCIDRs = mustParseCIDRs([]string{
+	"0.0.0.0/8",     // this network (includes 0.0.0.0)
 	"100.64.0.0/10", // carrier-grade NAT
 	"198.18.0.0/15", // benchmarking
 	"240.0.0.0/4",   // reserved
 })
 
+type targetPolicyError struct {
+	err error
+}
+
+func (e *targetPolicyError) Error() string { return e.err.Error() }
+func (e *targetPolicyError) Unwrap() error { return e.err }
+
+func wrapTargetPolicyError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var policyErr *targetPolicyError
+	if errors.As(err, &policyErr) {
+		return err
+	}
+	return &targetPolicyError{err: err}
+}
+
+func isTargetPolicyError(err error) bool {
+	var policyErr *targetPolicyError
+	return errors.As(err, &policyErr)
+}
+
 func validateAndNormalizeTargetURL(cfg Config, rawURL string) (string, error) {
+	parsed, err := parseAbsoluteHTTPURL(rawURL)
+	if err != nil {
+		return "", err
+	}
+	if err := applyTargetHostPolicy(cfg, parsed.Hostname(), true); err != nil {
+		return "", err
+	}
+
+	parsed.Fragment = ""
+	return parsed.String(), nil
+}
+
+func parseAbsoluteHTTPURL(rawURL string) (*url.URL, error) {
 	trimmed := strings.TrimSpace(rawURL)
 	if trimmed == "" {
-		return "", errors.New("url is required")
+		return nil, errors.New("url is required")
 	}
 
 	parsed, err := url.Parse(trimmed)
 	if err != nil || parsed == nil {
-		return "", errors.New("url must be a valid absolute URL")
+		return nil, errors.New("url must be a valid absolute URL")
 	}
 
 	scheme := strings.ToLower(parsed.Scheme)
 	if scheme != "http" && scheme != "https" {
-		return "", errors.New("url scheme must be http or https")
+		return nil, errors.New("url scheme must be http or https")
 	}
 	if parsed.Host == "" || parsed.Hostname() == "" {
-		return "", errors.New("url must include a valid host")
+		return nil, errors.New("url must include a valid host")
 	}
 	if parsed.User != nil {
-		return "", errors.New("url must not include credentials")
+		return nil, errors.New("url must not include credentials")
 	}
+	return parsed, nil
+}
 
-	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
-	hostAllowed := hostAllowedByPolicy(host, cfg.AllowedTargetHosts)
+func applyTargetHostPolicy(cfg Config, host string, enforceAllowlist bool) error {
+	host = strings.ToLower(strings.TrimSpace(host))
 	allowLoopback := cfg.AllowLoopbackTargets && isLoopbackHost(host)
 
 	if cfg.BlockPrivateNetworks {
 		if !allowLoopback {
 			if isBlockedHostname(host) {
-				return "", errors.New("url host is not allowed")
+				return errors.New("url host is not allowed")
 			}
 			if err := ensureHostResolvesToPublicIPs(host); err != nil {
-				return "", err
+				return err
 			}
 		}
 	}
 
-	if !hostAllowed {
-		return "", errors.New("url host is not in allowlist")
+	if enforceAllowlist && !hostAllowedByPolicy(host, cfg.AllowedTargetHosts) {
+		return errors.New("url host is not in allowlist")
+	}
+	return nil
+}
+
+// fetchRequestPolicy is applied to every Chrome Fetch interception.
+// Document / navigation requests use the full target policy (host allowlist +
+// private networks). Other requests only block restricted CIDRs and hosts.
+func fetchRequestPolicy(cfg Config, rawURL string, isDocument bool) error {
+	if isDocument {
+		_, err := validateAndNormalizeTargetURL(cfg, rawURL)
+		return err
+	}
+	return validateResourceURL(cfg, rawURL)
+}
+
+func validateResourceURL(cfg Config, rawURL string) error {
+	trimmed := strings.TrimSpace(rawURL)
+	if trimmed == "" {
+		return errors.New("url is required")
 	}
 
-	parsed.Fragment = ""
-	return parsed.String(), nil
+	parsed, err := url.Parse(trimmed)
+	if err != nil || parsed == nil {
+		return errors.New("url must be a valid absolute URL")
+	}
+
+	switch strings.ToLower(parsed.Scheme) {
+	case "data", "blob", "about":
+		return nil
+	case "http", "https", "ws", "wss":
+		if parsed.Hostname() == "" {
+			return errors.New("url must include a valid host")
+		}
+		return applyTargetHostPolicy(cfg, parsed.Hostname(), false)
+	case "file", "ftp":
+		return errors.New("url scheme must be http or https")
+	default:
+		return nil
+	}
 }
 
 func isLoopbackHost(host string) bool {

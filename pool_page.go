@@ -20,15 +20,41 @@ func newStealthPage(browser *rod.Browser) (*rod.Page, error) {
 	return page, nil
 }
 
-func runWithConfiguredPage(page *rod.Page, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
+func runWithConfiguredPage(page *rod.Page, cfg Config, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
 	defer func() { _ = page.Close() }()
 
 	if err := applyPageDefaults(page, width, height, userAgent, deviceScaleFactor); err != nil {
 		return err
 	}
 
+	router, err := startRequestGuard(page, cfg)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = router.Stop() }()
+
 	page = page.Timeout(time.Duration(timeoutMS) * time.Millisecond)
 	return fn(page)
+}
+
+func startRequestGuard(page *rod.Page, cfg Config) (*rod.HijackRouter, error) {
+	router := page.HijackRequests()
+	if err := router.Add("*", "", func(h *rod.Hijack) {
+		rawURL := ""
+		if reqURL := h.Request.URL(); reqURL != nil {
+			rawURL = reqURL.String()
+		}
+		if err := fetchRequestPolicy(cfg, rawURL, h.Request.IsNavigation()); err != nil {
+			h.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+			return
+		}
+		h.ContinueRequest(&proto.FetchContinueRequest{})
+	}); err != nil {
+		_ = router.Stop()
+		return nil, err
+	}
+	go router.Run()
+	return router, nil
 }
 
 func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, height int, userAgent string, deviceScaleFactor float64, fn func(page *rod.Page) error) error {
@@ -53,7 +79,7 @@ func (p *BrowserPool) withPage(ctx context.Context, timeoutMS int, width int, he
 		return err
 	}
 
-	err = runWithConfiguredPage(page, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
+	err = runWithConfiguredPage(page, p.cfg, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
 
 	if err != nil {
 		p.markFailure(inst, err)
@@ -80,7 +106,7 @@ func (p *BrowserPool) withStandalonePage(ctx context.Context, timeoutMS int, wid
 		return err
 	}
 
-	return runWithConfiguredPage(page, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
+	return runWithConfiguredPage(page, p.cfg, timeoutMS, width, height, userAgent, deviceScaleFactor, fn)
 }
 
 func applyPageDefaults(page *rod.Page, width int, height int, userAgent string, deviceScaleFactor float64) error {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -179,6 +180,24 @@ func TestDecodeJSONBody(t *testing.T) {
 				t.Fatalf("decoded url = %q, want %q", req.URL, tc.wantURL)
 			}
 		})
+	}
+}
+
+func TestWriteTargetPolicyError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	if !writeTargetPolicyError(rec, wrapTargetPolicyError(errors.New("url host is not allowed"))) {
+		t.Fatal("expected policy error to be written")
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+
+	rec = httptest.NewRecorder()
+	if writeTargetPolicyError(rec, io.ErrUnexpectedEOF) {
+		t.Fatal("did not expect a non-policy error to be written")
+	}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 }
 
