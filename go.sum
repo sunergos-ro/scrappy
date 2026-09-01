@@ -57,8 +57,8 @@ github.com/klauspost/compress v1.17.11 h1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IX
 github.com/klauspost/compress v1.17.11/go.mod h1:pMDklpSncoRMuLFrf1W9Ss9KT+0rH90U12bZKk7uwG0=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/posthog/posthog-go v1.23.1 h1:Xw8QnH1WdCjHoqEbej7FI3CfM1g0jBJb8aBqIpBvQeM=
-github.com/posthog/posthog-go v1.23.1/go.mod h1:seY9mmw3mYGT9i2Wr5Dn3JXWPiAkZ6aolwH/5l8eVQE=
+github.com/posthog/posthog-go v1.24.3 h1:EMWkrhXODtjFI7lUCxS4gzkNe/zaFeeS2oyS06MvfTo=
+github.com/posthog/posthog-go v1.24.3/go.mod h1:seY9mmw3mYGT9i2Wr5Dn3JXWPiAkZ6aolwH/5l8eVQE=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=

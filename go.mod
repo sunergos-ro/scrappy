@@ -10,7 +10,7 @@ require (
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
 	github.com/joho/godotenv v1.5.1
-	github.com/posthog/posthog-go v1.23.1
+	github.com/posthog/posthog-go v1.24.3
 )
 
 require (
