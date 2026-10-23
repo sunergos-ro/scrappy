@@ -10,7 +10,7 @@ require (
 	github.com/go-rod/rod v0.116.2
 	github.com/go-rod/stealth v0.4.9
 	github.com/joho/godotenv v1.5.1
-	github.com/posthog/posthog-go v1.24.3
+	github.com/posthog/posthog-go v1.34.0
 )
 
 require (
@@ -41,4 +41,5 @@ require (
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 )
