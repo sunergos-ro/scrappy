@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"scrappy/pkg/client"
+	"github.com/sunergos-ro/scrappy/pkg/client"
 )
 
 func TestHandleInitialize(t *testing.T) {

@@ -9,13 +9,13 @@ import (
 	"io"
 	"strings"
 
-	"scrappy/pkg/client"
+	"github.com/sunergos-ro/scrappy/pkg/client"
 )
 
 const (
 	defaultMCPProtocolVersion = "2024-11-05"
 	serverName                = "scrappy-mcp"
-	serverVersion             = "0.5.0"
+	serverVersion             = "0.6.0"
 )
 
 const (

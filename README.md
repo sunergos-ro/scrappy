@@ -19,6 +19,28 @@ Scrappy is a Go HTTP service that uses a warm Chrome pool to provide fast render
 - Chrome/Chromium available (or let Rod launcher manage it)
 - Optional: Cloudflare R2 credentials for `/screenshot`
 
+## Install
+
+Scrappy is a public Go module (`github.com/sunergos-ro/scrappy`). The HTTP service's `main` package lives at the module root, so you can install it with:
+
+```bash
+go install github.com/sunergos-ro/scrappy@latest
+```
+
+This installs a `scrappy` binary (the HTTP service) into `$(go env GOPATH)/bin` (or `$GOBIN`). Chrome/Chromium is still required at runtime.
+
+The MCP server installs the same way:
+
+```bash
+go install github.com/sunergos-ro/scrappy/cmd/scrappy-mcp@latest
+```
+
+The CLI in `cmd/scrappy` also builds a binary named `scrappy`, so installing it into the same `GOBIN` overwrites the service binary (and `go install ./...` keeps only one of them). Install it into a separate directory if you need both:
+
+```bash
+GOBIN="$HOME/.local/scrappy-cli/bin" go install github.com/sunergos-ro/scrappy/cmd/scrappy@latest
+```
+
 ## Quick Start
 
 1. Install dependencies:
