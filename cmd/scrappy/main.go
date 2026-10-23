@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"scrappy/pkg/client"
+	"github.com/sunergos-ro/scrappy/pkg/client"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"scrappy/pkg/client"
+	"github.com/sunergos-ro/scrappy/pkg/client"
 )
 
 func TestRunHTMLCommand(t *testing.T) {

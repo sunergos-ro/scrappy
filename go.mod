@@ -1,4 +1,4 @@
-module scrappy
+module github.com/sunergos-ro/scrappy
 
 go 1.26.0
 
