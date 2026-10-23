@@ -118,22 +118,37 @@ jobs:
           printf '%s\n' "$KAMAL_DEPLOY_YML" > config/deploy.yml
           mkdir -p .kamal
           cat > .kamal/secrets <<'EOF'
-          SCRAPPY_ADMIN_TOKEN=$(printenv SCRAPPY_ADMIN_TOKEN)
           R2_ACCESS_KEY_ID=$(printenv R2_ACCESS_KEY_ID)
           R2_SECRET_ACCESS_KEY=$(printenv R2_SECRET_ACCESS_KEY)
           POSTHOG_PROJECT_API_KEY=$(printenv POSTHOG_PROJECT_API_KEY)
           KAMAL_REGISTRY_PASSWORD=$(printenv KAMAL_REGISTRY_PASSWORD)
           EOF
 
+      # The registry is the Kamal local registry (localhost:5001), which starts empty
+      # on every GitHub-hosted runner. A registry build cache there is always cold and
+      # its mode=max export only adds time, so drop builder.cache for CI deploys.
+      # No-op when the config has no builder.cache. The laptop config is unchanged.
+      - name: Drop builder cache for CI
+        run: |
+          if ! yq --version 2>/dev/null | grep -q mikefarah; then
+            echo "mikefarah yq is not available on this runner."
+            exit 1
+          fi
+          if [ "$(yq '.builder | has("cache")' config/deploy.yml)" = "true" ]; then
+            yq -i 'del(.builder.cache)' config/deploy.yml
+            echo "Removed builder.cache from config/deploy.yml for this run."
+          else
+            echo "No builder.cache in config/deploy.yml. Nothing to change."
+          fi
+
       - name: Deploy
         env:
-          SCRAPPY_ADMIN_TOKEN: ${{ secrets.SCRAPPY_ADMIN_TOKEN }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           POSTHOG_PROJECT_API_KEY: ${{ secrets.POSTHOG_PROJECT_API_KEY }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
         run: |
-          for name in SCRAPPY_ADMIN_TOKEN R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+          for name in R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
             if [ -z "${!name:-}" ]; then
               echo "Repo secret ${name} is not set."
               exit 1
