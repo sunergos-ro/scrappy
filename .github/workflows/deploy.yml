@@ -1,0 +1,142 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # scrappy is a Go app with no Gemfile or bin/kamal, so install the Kamal gem
+      # directly. 2.12.0 matches the Kamal version buzzketeer and squingo deploy with.
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+
+      - name: Install Kamal
+        run: gem install kamal -v 2.12.0 --no-document
+
+      - name: Check Tailscale OAuth secrets
+        env:
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
+        run: |
+          if [ -z "${TS_OAUTH_CLIENT_ID:-}" ]; then
+            echo "TS_OAUTH_CLIENT_ID is empty."
+            exit 1
+          fi
+          if [ -z "${TS_OAUTH_SECRET:-}" ]; then
+            echo "TS_OAUTH_SECRET is empty."
+            exit 1
+          fi
+
+      - name: Join tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Wait for deploy host on the tailnet
+        run: |
+          host=100.83.81.81
+          port=2222
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if nc -z -w 5 "$host" "$port"; then
+              echo "Reached ${host}:${port}."
+              exit 0
+            fi
+            echo "Waiting for ${host}:${port} (attempt ${attempt}/10)."
+            sleep 3
+          done
+          echo "Could not reach ${host}:${port} over the tailnet."
+          tailscale status || true
+          exit 1
+
+      - name: Load SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "Repo secret SSH_PRIVATE_KEY is not set."
+            exit 1
+          fi
+          umask 077
+          mkdir -p ~/.ssh
+          key_file="$HOME/.ssh/kamal_deploy"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$key_file"
+          if [ "$(wc -l < "$key_file")" -lt 2 ]; then
+            printf '%b\n' "$SSH_PRIVATE_KEY" > "$key_file"
+          fi
+          chmod 600 "$key_file"
+          eval "$(ssh-agent -s)"
+          ssh-add "$key_file"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          ssh-keyscan -p 2222 -T 10 100.83.81.81 > ~/.ssh/known_hosts
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "Could not read the SSH host key for raulonrails on port 2222."
+            exit 1
+          fi
+
+      # This repo is public, so config/deploy.yml and .kamal/secrets are gitignored
+      # (see README "Deployment"). Restore the private deploy config from a repo
+      # secret and write a .kamal/secrets that only forwards environment variables.
+      - name: Write Kamal config
+        env:
+          KAMAL_DEPLOY_YML: ${{ secrets.KAMAL_DEPLOY_YML }}
+        run: |
+          if [ -z "${KAMAL_DEPLOY_YML:-}" ]; then
+            echo "Repo secret KAMAL_DEPLOY_YML is not set."
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$KAMAL_DEPLOY_YML" > config/deploy.yml
+          mkdir -p .kamal
+          cat > .kamal/secrets <<'EOF'
+          SCRAPPY_ADMIN_TOKEN=$(printenv SCRAPPY_ADMIN_TOKEN)
+          R2_ACCESS_KEY_ID=$(printenv R2_ACCESS_KEY_ID)
+          R2_SECRET_ACCESS_KEY=$(printenv R2_SECRET_ACCESS_KEY)
+          POSTHOG_PROJECT_API_KEY=$(printenv POSTHOG_PROJECT_API_KEY)
+          KAMAL_REGISTRY_PASSWORD=$(printenv KAMAL_REGISTRY_PASSWORD)
+          EOF
+
+      - name: Deploy
+        env:
+          SCRAPPY_ADMIN_TOKEN: ${{ secrets.SCRAPPY_ADMIN_TOKEN }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          POSTHOG_PROJECT_API_KEY: ${{ secrets.POSTHOG_PROJECT_API_KEY }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+        run: |
+          for name in SCRAPPY_ADMIN_TOKEN R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "Repo secret ${name} is not set."
+              exit 1
+            fi
+          done
+          kamal deploy
