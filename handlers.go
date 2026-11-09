@@ -168,7 +168,7 @@ func (h *Handlers) Markdown(w http.ResponseWriter, r *http.Request) {
 	options := resolveMarkdownOptions(h.cfg, req)
 	start := time.Now()
 
-	markdown, err := h.pool.Markdown(r.Context(), options)
+	result, err := h.pool.Markdown(r.Context(), options)
 	if err != nil {
 		if writeTargetPolicyError(w, err) {
 			return
@@ -179,9 +179,11 @@ func (h *Handlers) Markdown(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := MarkdownResponse{
-		URL:      options.URL,
-		Markdown: markdown,
-		TookMS:   time.Since(start).Milliseconds(),
+		URL:        options.URL,
+		FinalURL:   result.FinalURL,
+		StatusCode: result.StatusCode,
+		Markdown:   result.Markdown,
+		TookMS:     time.Since(start).Milliseconds(),
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

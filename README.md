@@ -246,6 +246,13 @@ Additional field for `/markdown`:
 
 - `prime_lazy_content` (optional; scrolls through the page before extraction to trigger lazy-loaded sections)
 
+`/markdown` response fields:
+
+- `url`: the requested URL
+- `final_url`: where the page ended up after server and client-side redirects
+- `status_code`: HTTP status of the loaded document (omitted when the browser cannot report it)
+- `markdown`, `took_ms`
+
 Additional fields for `/screenshot`:
 
 - `format` (`jpeg`, `png`, `webp`)
