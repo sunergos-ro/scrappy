@@ -131,6 +131,31 @@ func TestMarkdownSendsPrimeLazyContent(t *testing.T) {
 	}
 }
 
+func TestMarkdownDecodesDocumentState(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"url":"https://example.com/jobs/1","final_url":"https://example.com/careers","status_code":404,"markdown":"# Careers","took_ms":12}`))
+	}))
+	defer server.Close()
+
+	c, err := New(server.URL, WithHTTPClient(server.Client()))
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	resp, err := c.Markdown(context.Background(), MarkdownRequest{URL: "https://example.com/jobs/1"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if resp.FinalURL != "https://example.com/careers" {
+		t.Fatalf("unexpected final_url: %q", resp.FinalURL)
+	}
+	if resp.StatusCode != 404 {
+		t.Fatalf("unexpected status_code: %d", resp.StatusCode)
+	}
+}
+
 func TestScreenshotSendsDeviceScaleFactor(t *testing.T) {
 	t.Parallel()
 
