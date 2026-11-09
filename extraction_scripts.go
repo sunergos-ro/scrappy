@@ -1,5 +1,12 @@
 package main
 
+// location.href follows client-side redirects. responseStatus (Chrome 109+)
+// is the status of the final response after any server redirects.
+const documentStateScript = `() => {
+	const navigation = performance.getEntriesByType("navigation")[0];
+	return { url: location.href, status: (navigation && navigation.responseStatus) || 0 };
+}`
+
 const extractionRootHelpersScript = `
 	const ROOT_SELECTORS = [
 		"main",

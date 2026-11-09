@@ -52,9 +52,11 @@ type MarkdownRequest struct {
 }
 
 type MarkdownResponse struct {
-	URL      string `json:"url"`
-	Markdown string `json:"markdown"`
-	TookMS   int64  `json:"took_ms"`
+	URL        string `json:"url"`
+	FinalURL   string `json:"final_url,omitempty"`
+	StatusCode int    `json:"status_code,omitempty"`
+	Markdown   string `json:"markdown"`
+	TookMS     int64  `json:"took_ms"`
 }
 
 type ScaleRequest struct {

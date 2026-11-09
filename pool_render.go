@@ -21,8 +21,17 @@ func (p *BrowserPool) Render(ctx context.Context, opts RenderOptions) (string, e
 	return html, err
 }
 
-func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (string, error) {
-	var markdown string
+// MarkdownResult is the extracted content plus where the page ended up.
+// FinalURL follows server and client-side redirects; StatusCode is the HTTP
+// status of the loaded document, or 0 when the browser cannot tell.
+type MarkdownResult struct {
+	Markdown   string
+	FinalURL   string
+	StatusCode int
+}
+
+func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (MarkdownResult, error) {
+	var result MarkdownResult
 	err := p.withPage(ctx, opts.TimeoutMS, opts.ViewportWidth, opts.ViewportHeight, opts.UserAgent, 1, func(page *rod.Page) error {
 		if err := p.navigateAndSettle(page, opts.URL, opts.WaitMS); err != nil {
 			return err
@@ -42,10 +51,11 @@ func (p *BrowserPool) Markdown(ctx context.Context, opts RenderOptions) (string,
 			return err
 		}
 
-		markdown = extracted
+		result.Markdown = extracted
+		result.FinalURL, result.StatusCode = documentState(page)
 		return nil
 	})
-	return markdown, err
+	return result, err
 }
 
 func (p *BrowserPool) Screenshot(ctx context.Context, opts ScreenshotOptions) (ScreenshotResult, error) {

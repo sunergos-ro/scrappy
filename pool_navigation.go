@@ -105,6 +105,16 @@ func bodyTextLength(page *rod.Page) (int, error) {
 	return obj.Value.Int(), nil
 }
 
+// documentState reports the page's current URL and the HTTP status of the
+// document it loaded. Errors return zero values: callers treat them as unknown.
+func documentState(page *rod.Page) (string, int) {
+	obj, err := page.Eval(documentStateScript)
+	if err != nil {
+		return "", 0
+	}
+	return obj.Value.Get("url").Str(), obj.Value.Get("status").Int()
+}
+
 func extractMarkdown(page *rod.Page) (string, error) {
 	obj, err := page.Eval(markdownExtractionScript)
 	if err != nil {
